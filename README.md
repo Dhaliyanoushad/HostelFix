@@ -1,6 +1,6 @@
 # hostel_fix
 
-A new Flutter project.
+A mobile app for hostellers, made by hostellers.
 
 ## Getting Started
 
