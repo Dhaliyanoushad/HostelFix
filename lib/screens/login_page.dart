@@ -33,12 +33,17 @@ class _LoginPageState extends State<LoginPage> {
       String selectedRole = widget.role ?? 'Student';
       Map<String, dynamic>? userData;
 
-      if (selectedRole == 'Student') {
+      if (identity.contains('@')) {
+        userData = await _auth.loginWithEmail(
+          email: identity,
+          password: password,
+        );
+      } else if (selectedRole == 'Student') {
         userData = await _auth.loginWithStudentId(
           studentId: identity,
           password: password,
         );
-      } else if (selectedRole == 'Contractor' && !identity.contains('@')) {
+      } else if (selectedRole == 'Contractor') {
         userData = await _auth.loginWithPhone(
           phone: identity,
           password: password,
