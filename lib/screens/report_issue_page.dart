@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hostel_fix/services/notification_service.dart';
 
 class ReportIssuePage extends StatefulWidget {
   const ReportIssuePage({super.key});
@@ -20,7 +21,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
 
   String? hostelBlock;
   String category = 'Electricity';
-  String priority = 'Medium';
+  String priority = 'normal';
 
   bool isLoading = false;
 
@@ -68,22 +69,31 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
                     decoration: const InputDecoration(
                       labelText: "Issue Category",
                     ),
-                    value: category,
+                    initialValue: category,
                     items: ['Electricity', 'Water', 'Cleaning', 'Other']
                         .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                         .toList(),
                     onChanged: (value) => category = value!,
                   ),
 
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: "Priority Level",
+                  SwitchListTile(
+                    title: const Text("Immediate (Emergency)"),
+                    subtitle: const Text(
+                      "Mark this as a high priority emergency",
                     ),
-                    value: priority,
-                    items: ['Low', 'Medium', 'High']
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (value) => priority = value!,
+                    value: priority == 'high',
+                    activeColor: Colors.redAccent,
+                    onChanged: (bool value) {
+                      setState(() {
+                        priority = value ? 'high' : 'normal';
+                      });
+                    },
+                    secondary: Icon(
+                      priority == 'high'
+                          ? Icons.warning_amber_rounded
+                          : Icons.info_outline,
+                      color: priority == 'high' ? Colors.redAccent : null,
+                    ),
                   ),
 
                   buildTextField("Issue Title", titleController),
@@ -148,6 +158,14 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
         'status': 'Pending',
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      if (priority == 'high') {
+        await NotificationService.showEmergencyNotification(
+          title: "EMERGENCY: ${titleController.text.trim()}",
+          body:
+              "New high priority complaint from room ${roomController.text.trim()}",
+        );
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Complaint submitted successfully ✅")),

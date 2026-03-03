@@ -16,12 +16,14 @@ class _SignupPageState extends State<SignupPage> {
   String email = '';
   String studentId = '';
   String hostel = 'Hostel A';
+  String role = 'Student';
   String password = '';
 
   bool loading = false;
   bool showPassword = false;
 
   final hostels = ['Hostel A', 'Hostel B', 'Hostel C'];
+  final roles = ['Student', 'Admin', 'Matron', 'Contractor'];
 
   void signup() async {
     if (!_formKey.currentState!.validate()) return;
@@ -34,6 +36,7 @@ class _SignupPageState extends State<SignupPage> {
       studentId: studentId,
       hostel: hostel,
       password: password,
+      role: role,
     );
 
     setState(() => loading = false);
@@ -43,7 +46,15 @@ class _SignupPageState extends State<SignupPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(error)));
     } else {
-      Navigator.pushReplacementNamed(context, '/dashboard');
+      if (role == 'Admin') {
+        Navigator.pushReplacementNamed(context, '/admin-dashboard');
+      } else if (role == 'Matron') {
+        Navigator.pushReplacementNamed(context, '/matron-dashboard');
+      } else if (role == 'Contractor') {
+        Navigator.pushReplacementNamed(context, '/contractor-dashboard');
+      } else {
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      }
     }
   }
 
@@ -73,12 +84,20 @@ class _SignupPageState extends State<SignupPage> {
                 validator: (v) => v!.isEmpty ? 'Required' : null,
               ),
               DropdownButtonFormField(
-                value: hostel,
+                initialValue: hostel,
                 items: hostels
                     .map((h) => DropdownMenuItem(value: h, child: Text(h)))
                     .toList(),
                 onChanged: (v) => hostel = v!,
                 decoration: const InputDecoration(labelText: 'Hostel'),
+              ),
+              DropdownButtonFormField(
+                initialValue: role,
+                items: roles
+                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                    .toList(),
+                onChanged: (v) => role = v!,
+                decoration: const InputDecoration(labelText: 'User Role'),
               ),
               TextFormField(
                 decoration: InputDecoration(

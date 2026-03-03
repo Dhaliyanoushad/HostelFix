@@ -53,7 +53,7 @@ class LandingPage extends StatelessWidget {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          "Your Hostel Issues,\nSolved Faster",
+                          "Your Hostel Issue,\nSolved Faster",
                           style: TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.bold,

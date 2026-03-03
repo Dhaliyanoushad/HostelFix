@@ -30,7 +30,16 @@ class _LoginPageState extends State<LoginPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(error)));
     } else {
-      Navigator.pushReplacementNamed(context, '/dashboard');
+      String? role = await _auth.getRole(studentId);
+      if (role == 'Admin') {
+        Navigator.pushReplacementNamed(context, '/admin-dashboard');
+      } else if (role == 'Matron') {
+        Navigator.pushReplacementNamed(context, '/matron-dashboard');
+      } else if (role == 'Contractor') {
+        Navigator.pushReplacementNamed(context, '/contractor-dashboard');
+      } else {
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      }
     }
   }
 

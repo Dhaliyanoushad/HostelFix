@@ -12,6 +12,7 @@ class AuthService {
     required String studentId,
     required String hostel,
     required String password,
+    required String role,
   }) async {
     try {
       // 1️⃣ Create Firebase Auth user
@@ -27,6 +28,7 @@ class AuthService {
         'email': email,
         'studentId': studentId,
         'hostel': hostel,
+        'role': role,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -61,6 +63,19 @@ class AuthService {
       return e.message;
     } catch (e) {
       return 'Login failed';
+    }
+  }
+
+  /// GET ROLE
+  Future<String?> getRole(String studentId) async {
+    try {
+      DocumentSnapshot doc = await _db.collection('users').doc(studentId).get();
+      if (doc.exists) {
+        return doc['role'];
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 
