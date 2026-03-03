@@ -15,14 +15,14 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final AuthService _auth = AuthService();
 
-  String studentId = '';
+  String email = '';
   String password = '';
   bool loading = false;
 
   void login() async {
-    if (studentId.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter ID and Password")),
+        const SnackBar(content: Text("Please enter Email and Password")),
       );
       return;
     }
@@ -30,8 +30,8 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => loading = true);
 
     try {
-      Map<String, dynamic>? userData = await _auth.loginWithStudentId(
-        studentId: studentId,
+      Map<String, dynamic>? userData = await _auth.loginWithEmail(
+        email: email,
         password: password,
       );
 
@@ -84,7 +84,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     String roleTitle = widget.role ?? "User";
-    String idLabel = widget.role == "Student" ? "Student ID" : "Identity ID";
+    String idLabel = widget.role == "Student" ? "Email" : "Identity ID";
     String passLabel = widget.role == "Student"
         ? "Student Passcode"
         : "Password";
@@ -106,9 +106,9 @@ class _LoginPageState extends State<LoginPage> {
               decoration: InputDecoration(
                 labelText: idLabel,
                 border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.person),
+                prefixIcon: const Icon(Icons.email),
               ),
-              onChanged: (v) => studentId = v,
+              onChanged: (v) => email = v,
             ),
             const SizedBox(height: 16),
             TextField(

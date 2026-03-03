@@ -13,6 +13,7 @@ class AuthService {
     required String hostel,
     required String password,
     required String role,
+    required String gender,
   }) async {
     try {
       // 1️⃣ Create Firebase Auth user
@@ -28,6 +29,7 @@ class AuthService {
         'studentId': studentId,
         'hostel': hostel,
         'role': role,
+        'gender': gender,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -42,13 +44,34 @@ class AuthService {
     }
   }
 
-  /// LOGIN using Student ID
+  /// LOGIN using Email
+  Future<Map<String, dynamic>?> loginWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      // 1️⃣ Login using email + password (directly)
+      UserCredential cred = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // 2️⃣ Fetch user data by UID after login is successful
+      return await fetchUserData(cred.user!.uid);
+    } on FirebaseAuthException catch (e) {
+      throw e.message ?? 'Login failed';
+    } catch (e) {
+      throw e.toString();
+    }
+  }
+
+  /// LOGIN using Student ID (Note: This fails if Firestore rules are private)
   Future<Map<String, dynamic>?> loginWithStudentId({
     required String studentId,
     required String password,
   }) async {
     try {
-      // 1️⃣ Find email from Firestore using studentId
+      // 1️⃣ Find email from Firestore using studentId (This line fails with permission-denied if unauth)
       DocumentSnapshot doc = await _db.collection('users').doc(studentId).get();
 
       if (!doc.exists) {

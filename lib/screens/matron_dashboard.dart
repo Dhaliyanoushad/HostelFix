@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../providers/user_provider.dart';
 
 class MatronDashboard extends StatefulWidget {
   const MatronDashboard({super.key});
@@ -27,7 +30,13 @@ class _MatronDashboardState extends State<MatronDashboard> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Provider.of<UserProvider>(context, listen: false).clearUser();
+                Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
+              }
+            },
           ),
         ],
       ),

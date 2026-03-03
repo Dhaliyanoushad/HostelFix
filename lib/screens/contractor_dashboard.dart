@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../providers/user_provider.dart';
 
 class ContractorDashboard extends StatefulWidget {
   const ContractorDashboard({super.key});
@@ -21,7 +24,13 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Provider.of<UserProvider>(context, listen: false).clearUser();
+                Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
+              }
+            },
           ),
         ],
       ),

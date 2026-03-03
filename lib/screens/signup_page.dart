@@ -17,14 +17,18 @@ class _SignupPageState extends State<SignupPage> {
   String name = '';
   String email = '';
   String studentId = '';
-  String hostel = 'Hostel A';
+  String hostel = ''; // Start empty
   String role = 'Student';
+  String gender = 'Boy'; // Default
   String password = '';
 
   bool loading = false;
   bool showPassword = false;
 
-  final hostels = ['Hostel A', 'Hostel B', 'Hostel C'];
+  final Map<String, List<String>> hostelData = {
+    'Boy': ['Sahara', 'Siberia', 'Swaraj', 'Sagar', 'Sarovar'],
+    'Girl': ['Alakananda', 'Aiswarya', 'Anagha', 'Ananya', 'Anaswara'],
+  };
   final roles = ['Student', 'Admin', 'Matron', 'Contractor'];
 
   void signup() async {
@@ -38,6 +42,7 @@ class _SignupPageState extends State<SignupPage> {
         hostel: hostel,
         password: password,
         role: role,
+        gender: gender,
       );
 
       if (userData != null) {
@@ -104,15 +109,31 @@ class _SignupPageState extends State<SignupPage> {
                 validator: (v) => v!.isEmpty ? 'Required' : null,
               ),
               DropdownButtonFormField(
-                initialValue: hostel,
-                items: hostels
+                value: gender,
+                items: hostelData.keys
+                    .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                    .toList(),
+                onChanged: (v) {
+                  setState(() {
+                    gender = v!;
+                    hostel = ''; // Reset hostel on gender change
+                  });
+                },
+                decoration: const InputDecoration(labelText: 'Gender'),
+                validator: (v) => v == null ? 'Required' : null,
+              ),
+              DropdownButtonFormField(
+                value: hostel.isEmpty ? null : hostel,
+                items: hostelData[gender]!
                     .map((h) => DropdownMenuItem(value: h, child: Text(h)))
                     .toList(),
                 onChanged: (v) => hostel = v!,
                 decoration: const InputDecoration(labelText: 'Hostel'),
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Please select a hostel' : null,
               ),
               DropdownButtonFormField(
-                initialValue: role,
+                value: role,
                 items: roles
                     .map((r) => DropdownMenuItem(value: r, child: Text(r)))
                     .toList(),
