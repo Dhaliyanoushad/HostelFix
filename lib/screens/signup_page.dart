@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
 
 class SignupPage extends StatefulWidget {
@@ -28,33 +30,51 @@ class _SignupPageState extends State<SignupPage> {
   void signup() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => loading = true);
+    try {
+      Map<String, dynamic>? userData = await _auth.signUp(
+        name: name,
+        email: email,
+        studentId: studentId,
+        hostel: hostel,
+        password: password,
+        role: role,
+      );
 
-    String? error = await _auth.signUp(
-      name: name,
-      email: email,
-      studentId: studentId,
-      hostel: hostel,
-      password: password,
-      role: role,
-    );
+      if (userData != null) {
+        Provider.of<UserProvider>(context, listen: false).setUser(userData);
 
-    setState(() => loading = false);
-
-    if (error != null) {
+        if (role == 'Admin') {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/admin-dashboard',
+            (r) => false,
+          );
+        } else if (role == 'Matron') {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/matron-dashboard',
+            (r) => false,
+          );
+        } else if (role == 'Contractor') {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/contractor-dashboard',
+            (r) => false,
+          );
+        } else {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/dashboard',
+            (r) => false,
+          );
+        }
+      }
+    } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error)));
-    } else {
-      if (role == 'Admin') {
-        Navigator.pushReplacementNamed(context, '/admin-dashboard');
-      } else if (role == 'Matron') {
-        Navigator.pushReplacementNamed(context, '/matron-dashboard');
-      } else if (role == 'Contractor') {
-        Navigator.pushReplacementNamed(context, '/contractor-dashboard');
-      } else {
-        Navigator.pushReplacementNamed(context, '/dashboard');
-      }
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setState(() => loading = false);
     }
   }
 

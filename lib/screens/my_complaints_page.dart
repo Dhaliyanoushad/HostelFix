@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 class MyComplaintsPage extends StatelessWidget {
@@ -8,20 +9,38 @@ class MyComplaintsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final User? user = FirebaseAuth.instance.currentUser;
+    final userProvider = Provider.of<UserProvider>(context);
+    final userData = userProvider.userData;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(title: const Text("My Complaints"), centerTitle: true),
-      body: user == null
+      body: userData == null
           ? const Center(child: Text("User not logged in"))
           : StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('complaints')
-                  .where('uid', isEqualTo: user.uid)
-                  .orderBy('createdAt', descending: true)
+                  .where(
+                    Filter.or(
+                      Filter('studentId', isEqualTo: userData['uid']),
+                      Filter('uid', isEqualTo: userData['uid']),
+                    ),
+                  )
                   .snapshots(),
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(
+                        "Error: ${snapshot.error}",
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -35,7 +54,19 @@ class MyComplaintsPage extends StatelessWidget {
                   );
                 }
 
-                final complaints = snapshot.data!.docs;
+                // Client-side sorting to avoid composite index requirement
+                final complaints = snapshot.data!.docs.toList();
+                complaints.sort((a, b) {
+                  final t1 =
+                      (a.data() as Map<String, dynamic>)['createdAt']
+                          as Timestamp?;
+                  final t2 =
+                      (b.data() as Map<String, dynamic>)['createdAt']
+                          as Timestamp?;
+                  if (t1 == null) return 1;
+                  if (t2 == null) return -1;
+                  return t2.compareTo(t1);
+                });
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -67,6 +98,9 @@ class ComplaintCard extends StatelessWidget {
         ? DateFormat('dd MMM yyyy').format(data['createdAt'].toDate())
         : '—';
 
+    // Handle both old and new field names for description
+    final String desc = data['issueDescription'] ?? data['description'] ?? '';
+
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 14),
@@ -93,7 +127,14 @@ class ComplaintCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text("Category : ${data['category']}"),
             Text("Priority : ${data['priority']}"),
-            const SizedBox(height: 6),
+            if (desc.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                desc,
+                style: const TextStyle(fontSize: 13, color: Colors.black87),
+              ),
+            ],
+            const SizedBox(height: 10),
             Text(
               "Submitted on $date",
               style: const TextStyle(fontSize: 12, color: Colors.grey),

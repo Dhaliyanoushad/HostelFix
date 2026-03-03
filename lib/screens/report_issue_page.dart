@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hostel_fix/services/notification_service.dart';
 
 class ReportIssuePage extends StatefulWidget {
@@ -27,6 +28,9 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final userData = userProvider.userData;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(title: const Text("Report an Issue")),
@@ -49,21 +53,25 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
                   ),
                   const SizedBox(height: 20),
 
-                  buildTextField("Your Name", nameController),
-                  buildTextField("Student ID", studentIdController),
-                  buildTextField("Room Number", roomController),
-
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      labelText: "Hostel Block",
+                  // Show some info that it's being auto-filled
+                  if (userData != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Column(
+                        children: [
+                          Text(
+                            "Reporting as: ${userData['name']}",
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          Text(
+                            "Student ID: ${userData['studentId']}",
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
                     ),
-                    items: ['A', 'B', 'C', 'D']
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (value) => hostelBlock = value,
-                    validator: (value) =>
-                        value == null ? 'Select hostel block' : null,
-                  ),
+
+                  buildTextField("Room Number", roomController),
 
                   DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
@@ -106,7 +114,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
                   const SizedBox(height: 20),
 
                   ElevatedButton(
-                    onPressed: isLoading ? null : submitForm,
+                    onPressed: isLoading ? null : () => submitForm(userData),
                     child: isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text("Submit Issue"),
@@ -137,24 +145,30 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
     );
   }
 
-  Future<void> submitForm() async {
+  Future<void> submitForm(Map<String, dynamic>? userData) async {
     if (!_formKey.currentState!.validate()) return;
+    if (userData == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("User data not found")));
+      return;
+    }
 
     setState(() => isLoading = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-
       await FirebaseFirestore.instance.collection('complaints').add({
-        'uid': user?.uid,
-        'name': nameController.text.trim(),
-        'studentId': studentIdController.text.trim(),
+        'uid': userData['uid'], // For backward compatibility
+        'studentName': userData['name'],
+        'studentId': userData['uid'], // Firebase UID (Requirement)
+        'registerNumber': userData['studentId'], // Roll Number
+        'hostel': userData['hostel'],
+        'department': userData['department'] ?? 'General',
         'room': roomController.text.trim(),
-        'hostelBlock': hostelBlock,
         'category': category,
         'priority': priority,
         'title': titleController.text.trim(),
-        'description': descriptionController.text.trim(),
+        'issueDescription': descriptionController.text.trim(),
         'status': 'Pending',
         'createdAt': FieldValue.serverTimestamp(),
       });

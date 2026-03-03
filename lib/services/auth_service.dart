@@ -6,7 +6,7 @@ class AuthService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   /// SIGN UP
-  Future<String?> signUp({
+  Future<Map<String, dynamic>?> signUp({
     required String name,
     required String email,
     required String studentId,
@@ -21,8 +21,7 @@ class AuthService {
         password: password,
       );
 
-      // 2️⃣ Save extra data in Firestore
-      await _db.collection('users').doc(studentId).set({
+      final userData = {
         'uid': cred.user!.uid,
         'name': name,
         'email': email,
@@ -30,18 +29,21 @@ class AuthService {
         'hostel': hostel,
         'role': role,
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      };
 
-      return null; // success
+      // 2️⃣ Save extra data in Firestore
+      await _db.collection('users').doc(studentId).set(userData);
+
+      return userData; // success
     } on FirebaseAuthException catch (e) {
-      return e.message;
+      throw e.message ?? 'Signup failed';
     } catch (e) {
-      return 'Something went wrong';
+      throw e.toString();
     }
   }
 
   /// LOGIN using Student ID
-  Future<String?> loginWithStudentId({
+  Future<Map<String, dynamic>?> loginWithStudentId({
     required String studentId,
     required String password,
   }) async {
@@ -50,7 +52,7 @@ class AuthService {
       DocumentSnapshot doc = await _db.collection('users').doc(studentId).get();
 
       if (!doc.exists) {
-        return 'Student ID not found';
+        throw 'Student ID not found';
       }
 
       String email = doc['email'];
@@ -58,11 +60,28 @@ class AuthService {
       // 2️⃣ Login using email + password
       await _auth.signInWithEmailAndPassword(email: email, password: password);
 
-      return null; // success
+      return doc.data() as Map<String, dynamic>?;
     } on FirebaseAuthException catch (e) {
-      return e.message;
+      throw e.message ?? 'Login failed';
     } catch (e) {
-      return 'Login failed';
+      throw e.toString();
+    }
+  }
+
+  /// FETCH USER DATA by UID
+  Future<Map<String, dynamic>?> fetchUserData(String uid) async {
+    try {
+      QuerySnapshot snap = await _db
+          .collection('users')
+          .where('uid', isEqualTo: uid)
+          .limit(1)
+          .get();
+      if (snap.docs.isNotEmpty) {
+        return snap.docs.first.data() as Map<String, dynamic>?;
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 

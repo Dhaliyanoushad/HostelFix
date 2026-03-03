@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
@@ -18,18 +20,52 @@ class LandingPage extends StatelessWidget {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/login');
+          Consumer<UserProvider>(
+            builder: (context, userProvider, _) {
+              if (userProvider.userData != null) {
+                return ElevatedButton(
+                  onPressed: () {
+                    String role = userProvider.userData!['role'];
+                    if (role == 'Admin') {
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/admin-dashboard',
+                      );
+                    } else if (role == 'Matron') {
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/matron-dashboard',
+                      );
+                    } else if (role == 'Contractor') {
+                      Navigator.pushReplacementNamed(
+                        context,
+                        '/contractor-dashboard',
+                      );
+                    } else {
+                      Navigator.pushReplacementNamed(context, '/dashboard');
+                    }
+                  },
+                  child: const Text("Go to Dashboard"),
+                );
+              }
+              return Row(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/select-role');
+                    },
+                    child: const Text("Login"),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/signup');
+                    },
+                    child: const Text("Get Started"),
+                  ),
+                ],
+              );
             },
-            child: const Text("Login"),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/signup');
-            },
-            child: const Text("Get Started"),
           ),
           const SizedBox(width: 16),
         ],
