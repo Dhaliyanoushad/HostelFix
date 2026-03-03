@@ -15,6 +15,7 @@ class AuthService {
     required String role,
     String? gender,
     String? phone,
+    String? specialization,
   }) async {
     try {
       // 1️⃣ Create Firebase Auth user
@@ -32,6 +33,7 @@ class AuthService {
         'role': role,
         'gender': gender,
         'phone': phone,
+        'specialization': specialization,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -42,6 +44,14 @@ class AuthService {
           : cred.user!.uid;
 
       await _db.collection('users').doc(docId).set(userData);
+
+      // 3️⃣ Create public lookup entry for Students (to allow login by ID without public user-profile reads)
+      if (role == 'Student' && studentId != null && studentId.isNotEmpty) {
+        await _db.collection('public_lookups').doc(studentId).set({
+          'email': email,
+          'uid': cred.user!.uid,
+        });
+      }
 
       return userData; // success
     } on FirebaseAuthException catch (e) {
@@ -78,19 +88,24 @@ class AuthService {
     required String password,
   }) async {
     try {
-      // 1️⃣ Find email from Firestore using studentId (This line fails with permission-denied if unauth)
-      DocumentSnapshot doc = await _db.collection('users').doc(studentId).get();
+      // 1️⃣ Find email from public_lookups using studentId
+      DocumentSnapshot lookupDoc = await _db
+          .collection('public_lookups')
+          .doc(studentId)
+          .get();
 
-      if (!doc.exists) {
-        throw 'Student ID not found';
+      if (!lookupDoc.exists) {
+        throw 'Student ID not found. Ensure you have registered.';
       }
 
-      String email = doc['email'];
+      String email = lookupDoc['email'];
+      String uid = lookupDoc['uid'];
 
-      // 2️⃣ Login using email + password
+      // 2️⃣ Login using email + password (directly)
       await _auth.signInWithEmailAndPassword(email: email, password: password);
 
-      return doc.data() as Map<String, dynamic>?;
+      // 3️⃣ Fetch full user data after successful auth
+      return await fetchUserData(uid);
     } on FirebaseAuthException catch (e) {
       throw e.message ?? 'Login failed';
     } catch (e) {

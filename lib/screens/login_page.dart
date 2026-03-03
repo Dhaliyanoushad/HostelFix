@@ -108,16 +108,14 @@ class _LoginPageState extends State<LoginPage> {
     IconData idIcon = Icons.email;
 
     if (widget.role == "Student") {
-      idLabel = "Student ID";
-      idIcon = Icons.person;
+      idLabel = "Email";
+      idIcon = Icons.email;
     } else if (widget.role == "Contractor") {
       idLabel = "Email or Phone";
       idIcon = Icons.contact_mail;
     }
 
-    String passLabel = widget.role == "Student"
-        ? "Student Passcode"
-        : "Password";
+    String passLabel = "Password";
 
     return Scaffold(
       appBar: AppBar(title: Text('$roleTitle Login')),

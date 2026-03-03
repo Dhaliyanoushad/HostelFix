@@ -21,7 +21,15 @@ class _SignupPageState extends State<SignupPage> {
   String phone = '';
   String hostel = '';
   String gender = 'Boy';
+  String specialization = 'Electricity';
   String password = '';
+
+  final List<String> specializations = [
+    'Electricity',
+    'Water',
+    'Cleaning',
+    'Other',
+  ];
 
   bool loading = false;
   bool showPassword = false;
@@ -50,6 +58,7 @@ class _SignupPageState extends State<SignupPage> {
             ? gender
             : null,
         phone: selectedRole == 'Contractor' ? phone : null,
+        specialization: selectedRole == 'Contractor' ? specialization : null,
         password: password,
         role: selectedRole,
       );
@@ -164,13 +173,25 @@ class _SignupPageState extends State<SignupPage> {
                       v == null || v.isEmpty ? 'Please select a hostel' : null,
                 ),
               ],
-              if (selectedRole == 'Contractor')
+              if (selectedRole == 'Contractor') ...[
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Phone Number'),
                   keyboardType: TextInputType.phone,
                   onChanged: (v) => phone = v,
                   validator: (v) => v!.isEmpty ? 'Required' : null,
                 ),
+                DropdownButtonFormField(
+                  value: specialization,
+                  items: specializations
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: (v) => setState(() => specialization = v!),
+                  decoration: const InputDecoration(
+                    labelText: 'Specialization',
+                  ),
+                  validator: (v) => v == null ? 'Required' : null,
+                ),
+              ],
               TextFormField(
                 decoration: InputDecoration(
                   labelText: 'Password',
