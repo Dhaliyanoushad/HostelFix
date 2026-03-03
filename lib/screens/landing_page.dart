@@ -31,10 +31,10 @@ class LandingPage extends StatelessWidget {
                         context,
                         '/admin-dashboard',
                       );
-                    } else if (role == 'Matron') {
+                    } else if (role == 'Warden') {
                       Navigator.pushReplacementNamed(
                         context,
-                        '/matron-dashboard',
+                        '/warden-dashboard',
                       );
                     } else if (role == 'Contractor') {
                       Navigator.pushReplacementNamed(
@@ -59,7 +59,7 @@ class LandingPage extends StatelessWidget {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.pushNamed(context, '/signup');
+                      Navigator.pushNamed(context, '/select-signup-role');
                     },
                     child: const Text("Get Started"),
                   ),

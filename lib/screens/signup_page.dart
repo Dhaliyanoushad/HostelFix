@@ -4,7 +4,8 @@ import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
 
 class SignupPage extends StatefulWidget {
-  const SignupPage({super.key});
+  final String? role;
+  const SignupPage({super.key, this.role});
 
   @override
   State<SignupPage> createState() => _SignupPageState();
@@ -17,9 +18,9 @@ class _SignupPageState extends State<SignupPage> {
   String name = '';
   String email = '';
   String studentId = '';
-  String hostel = ''; // Start empty
-  String role = 'Student';
-  String gender = 'Boy'; // Default
+  String phone = '';
+  String hostel = '';
+  String gender = 'Boy';
   String password = '';
 
   bool loading = false;
@@ -29,38 +30,46 @@ class _SignupPageState extends State<SignupPage> {
     'Boy': ['Sahara', 'Siberia', 'Swaraj', 'Sagar', 'Sarovar'],
     'Girl': ['Alakananda', 'Aiswarya', 'Anagha', 'Ananya', 'Anaswara'],
   };
-  final roles = ['Student', 'Admin', 'Matron', 'Contractor'];
+  final Map<String, String> wardenGenders = {'Male': 'Boy', 'Female': 'Girl'};
 
   void signup() async {
     if (!_formKey.currentState!.validate()) return;
 
+    setState(() => loading = true);
+
     try {
+      String selectedRole = widget.role ?? 'Student';
       Map<String, dynamic>? userData = await _auth.signUp(
         name: name,
         email: email,
-        studentId: studentId,
-        hostel: hostel,
+        studentId: selectedRole == 'Student' ? studentId : null,
+        hostel: (selectedRole == 'Student' || selectedRole == 'Warden')
+            ? hostel
+            : null,
+        gender: (selectedRole == 'Student' || selectedRole == 'Warden')
+            ? gender
+            : null,
+        phone: selectedRole == 'Contractor' ? phone : null,
         password: password,
-        role: role,
-        gender: gender,
+        role: selectedRole,
       );
 
       if (userData != null) {
         Provider.of<UserProvider>(context, listen: false).setUser(userData);
 
-        if (role == 'Admin') {
+        if (selectedRole == 'Admin') {
           Navigator.pushNamedAndRemoveUntil(
             context,
             '/admin-dashboard',
             (r) => false,
           );
-        } else if (role == 'Matron') {
+        } else if (selectedRole == 'Warden') {
           Navigator.pushNamedAndRemoveUntil(
             context,
-            '/matron-dashboard',
+            '/warden-dashboard',
             (r) => false,
           );
-        } else if (role == 'Contractor') {
+        } else if (selectedRole == 'Contractor') {
           Navigator.pushNamedAndRemoveUntil(
             context,
             '/contractor-dashboard',
@@ -85,8 +94,10 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   Widget build(BuildContext context) {
+    String selectedRole = widget.role ?? 'Student';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Signup')),
+      appBar: AppBar(title: Text('$selectedRole Signup')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -94,52 +105,72 @@ class _SignupPageState extends State<SignupPage> {
           child: ListView(
             children: [
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Name'),
+                decoration: const InputDecoration(labelText: 'Full Name'),
                 onChanged: (v) => name = v,
                 validator: (v) => v!.isEmpty ? 'Required' : null,
               ),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: const InputDecoration(labelText: 'Email Address'),
                 onChanged: (v) => email = v,
                 validator: (v) => v!.contains('@') ? null : 'Enter valid email',
               ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Student ID'),
-                onChanged: (v) => studentId = v,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
-              ),
-              DropdownButtonFormField(
-                value: gender,
-                items: hostelData.keys
-                    .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                    .toList(),
-                onChanged: (v) {
-                  setState(() {
-                    gender = v!;
-                    hostel = ''; // Reset hostel on gender change
-                  });
-                },
-                decoration: const InputDecoration(labelText: 'Gender'),
-                validator: (v) => v == null ? 'Required' : null,
-              ),
-              DropdownButtonFormField(
-                value: hostel.isEmpty ? null : hostel,
-                items: hostelData[gender]!
-                    .map((h) => DropdownMenuItem(value: h, child: Text(h)))
-                    .toList(),
-                onChanged: (v) => hostel = v!,
-                decoration: const InputDecoration(labelText: 'Hostel'),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Please select a hostel' : null,
-              ),
-              DropdownButtonFormField(
-                value: role,
-                items: roles
-                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                    .toList(),
-                onChanged: (v) => role = v!,
-                decoration: const InputDecoration(labelText: 'User Role'),
-              ),
+              if (selectedRole == 'Student')
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'Student ID'),
+                  onChanged: (v) => studentId = v,
+                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                ),
+              if (selectedRole == 'Student' || selectedRole == 'Warden') ...[
+                DropdownButtonFormField(
+                  value: gender.isEmpty
+                      ? null
+                      : (selectedRole == 'Warden'
+                            ? (gender == 'Boy' ? 'Male' : 'Female')
+                            : gender),
+                  items:
+                      (selectedRole == 'Warden'
+                              ? wardenGenders.keys.toList()
+                              : hostelData.keys.toList())
+                          .map(
+                            (g) => DropdownMenuItem(value: g, child: Text(g)),
+                          )
+                          .toList(),
+                  onChanged: (v) {
+                    setState(() {
+                      if (selectedRole == 'Warden') {
+                        gender = wardenGenders[v]!;
+                      } else {
+                        gender = v!;
+                      }
+                      hostel = '';
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: selectedRole == 'Warden' ? 'Gender' : 'Gender',
+                    hintText: selectedRole == 'Warden'
+                        ? 'Select Male/Female'
+                        : 'Select Boy/Girl',
+                  ),
+                  validator: (v) => v == null ? 'Required' : null,
+                ),
+                DropdownButtonFormField(
+                  value: hostel.isEmpty ? null : hostel,
+                  items: hostelData[gender]!
+                      .map((h) => DropdownMenuItem(value: h, child: Text(h)))
+                      .toList(),
+                  onChanged: (v) => hostel = v!,
+                  decoration: const InputDecoration(labelText: 'Hostel'),
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Please select a hostel' : null,
+                ),
+              ],
+              if (selectedRole == 'Contractor')
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'Phone Number'),
+                  keyboardType: TextInputType.phone,
+                  onChanged: (v) => phone = v,
+                  validator: (v) => v!.isEmpty ? 'Required' : null,
+                ),
               TextFormField(
                 decoration: InputDecoration(
                   labelText: 'Password',
@@ -160,10 +191,9 @@ class _SignupPageState extends State<SignupPage> {
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton(
                       onPressed: signup,
-                      child: const Text('Create Account'),
+                      child: Text('Create $selectedRole Account'),
                     ),
               const SizedBox(height: 10),
-
               TextButton(
                 onPressed: () {
                   Navigator.pushReplacementNamed(context, '/login');

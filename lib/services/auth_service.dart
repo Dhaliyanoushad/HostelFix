@@ -9,11 +9,12 @@ class AuthService {
   Future<Map<String, dynamic>?> signUp({
     required String name,
     required String email,
-    required String studentId,
-    required String hostel,
+    String? studentId,
+    String? hostel,
     required String password,
     required String role,
-    required String gender,
+    String? gender,
+    String? phone,
   }) async {
     try {
       // 1️⃣ Create Firebase Auth user
@@ -30,11 +31,17 @@ class AuthService {
         'hostel': hostel,
         'role': role,
         'gender': gender,
+        'phone': phone,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
       // 2️⃣ Save extra data in Firestore
-      await _db.collection('users').doc(studentId).set(userData);
+      // Use studentId as doc ID if available (for backward compatibility), otherwise use UID
+      String docId = (studentId != null && studentId.isNotEmpty)
+          ? studentId
+          : cred.user!.uid;
+
+      await _db.collection('users').doc(docId).set(userData);
 
       return userData; // success
     } on FirebaseAuthException catch (e) {
@@ -118,6 +125,36 @@ class AuthService {
       return null;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// LOGIN using Phone
+  Future<Map<String, dynamic>?> loginWithPhone({
+    required String phone,
+    required String password,
+  }) async {
+    try {
+      // 1️⃣ Find email from Firestore using phone
+      QuerySnapshot snap = await _db
+          .collection('users')
+          .where('phone', isEqualTo: phone)
+          .limit(1)
+          .get();
+
+      if (snap.docs.isEmpty) {
+        throw 'Phone number not found';
+      }
+
+      String email = snap.docs.first['email'];
+
+      // 2️⃣ Login using email + password
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+
+      return snap.docs.first.data() as Map<String, dynamic>?;
+    } on FirebaseAuthException catch (e) {
+      throw e.message ?? 'Login failed';
+    } catch (e) {
+      throw e.toString();
     }
   }
 

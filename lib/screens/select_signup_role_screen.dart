@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'login_page.dart';
+import 'signup_page.dart';
 
-class SelectRoleScreen extends StatelessWidget {
-  const SelectRoleScreen({super.key});
+class SelectSignupRoleScreen extends StatelessWidget {
+  const SelectSignupRoleScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +14,10 @@ class SelectRoleScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF64B5F6), Color(0xFF1976D2)],
+            colors: [
+              Color(0xFF81C784),
+              Color(0xFF388E3C),
+            ], // Green gradient for signup
           ),
         ),
         child: SafeArea(
@@ -22,7 +25,7 @@ class SelectRoleScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                "Welcome to HostelFix",
+                "Create Account",
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -31,7 +34,7 @@ class SelectRoleScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               const Text(
-                "Select your role to continue",
+                "Select your role to register",
                 style: TextStyle(fontSize: 16, color: Colors.white70),
               ),
               const SizedBox(height: 40),
@@ -62,9 +65,17 @@ class SelectRoleScreen extends StatelessWidget {
                     context,
                     "Contractor",
                     Icons.handyman,
-                    Colors.green,
+                    Colors.blue,
                   ),
                 ],
+              ),
+              const SizedBox(height: 40),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  "Already have an account? Login",
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -83,7 +94,7 @@ class SelectRoleScreen extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => LoginPage(role: role)),
+          MaterialPageRoute(builder: (context) => SignupPage(role: role)),
         );
       },
       child: ClipRRect(
