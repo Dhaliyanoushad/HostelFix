@@ -66,6 +66,33 @@ class SelectRoleScreen extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 40),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushReplacementNamed(
+                    context,
+                    '/select-signup-role',
+                  );
+                },
+                child: RichText(
+                  text: const TextSpan(
+                    style: TextStyle(fontSize: 14),
+                    children: [
+                      TextSpan(
+                        text: "Don't have an account? ",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      TextSpan(
+                        text: "Sign Up",
+                        style: TextStyle(
+                          color: Color(0xFF81C784),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),

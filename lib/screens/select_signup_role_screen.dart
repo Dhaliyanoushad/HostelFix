@@ -70,11 +70,27 @@ class SelectSignupRoleScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 40),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  "Already have an account? Login",
-                  style: TextStyle(color: Colors.white),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushReplacementNamed(context, '/select-role');
+                },
+                child: RichText(
+                  text: const TextSpan(
+                    style: TextStyle(fontSize: 14),
+                    children: [
+                      TextSpan(
+                        text: "Already have an account? ",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      TextSpan(
+                        text: "Login",
+                        style: TextStyle(
+                          color: Color(0xFF64B5F6),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
