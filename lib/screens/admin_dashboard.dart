@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/user_provider.dart';
+import '../widgets/custom_widgets.dart';
+import '../theme/app_theme.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -15,15 +17,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length:
-          4, // 0: Complaints (Existing), 1: Approvals, 2: Contractors, 3: Hostels
+      length: 4,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FB),
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: const Text("Admin Panel"),
+          title: const Text("Admin Cyber-Panel"),
           actions: [
             IconButton(
-              icon: const Icon(Icons.logout),
+              icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
                 if (context.mounted) {
@@ -33,35 +34,37 @@ class _AdminDashboardState extends State<AdminDashboard> {
               },
             ),
           ],
-          bottom: const TabBar(
-            isScrollable: false,
-            labelPadding: EdgeInsets.symmetric(horizontal: 4),
-            labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            tabs: [
-              Tab(text: "Complaints"),
-              Tab(text: "Approvals"),
+          bottom: TabBar(
+            isScrollable: true,
+            indicatorColor: AppColors.primaryAccent,
+            indicatorWeight: 3,
+            labelColor: AppColors.primaryAccent,
+            unselectedLabelColor: AppColors.textSecondary,
+            tabs: const [
+              Tab(text: "Tickets"),
+              Tab(text: "Approval"),
               Tab(text: "Contractors"),
               Tab(text: "Hostels"),
             ],
           ),
         ),
-        body: const TabBarView(
-          children: [
-            ComplaintsView(),
-            ContractorApprovalView(),
-            ContractorListView(),
-            HostelsView(),
-          ],
+        body: const FuturisticBackground(
+          child: TabBarView(
+            children: [
+              ComplaintsView(),
+              ContractorApprovalView(),
+              ContractorListView(),
+              HostelsView(),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// 📌 EXISTING COMPLAINTS VIEW (Refactored from previous version)
 class ComplaintsView extends StatefulWidget {
   const ComplaintsView({super.key});
-
   @override
   State<ComplaintsView> createState() => _ComplaintsViewState();
 }
@@ -80,6 +83,7 @@ class _ComplaintsViewState extends State<ComplaintsView> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        const SizedBox(height: 100), // Account for transparent AppBar
         _buildFilterBar(),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
@@ -89,15 +93,18 @@ class _ComplaintsViewState extends State<ComplaintsView> {
                 return const Center(child: CircularProgressIndicator());
               final docs = snapshot.data!.docs;
               if (docs.isEmpty)
-                return const Center(child: Text("No complaints found."));
+                return const Center(
+                  child: Text(
+                    "Empty Archives",
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                );
 
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: docs.length,
                 itemBuilder: (context, index) {
-                  final data = docs[index].data() as Map<String, dynamic>;
-                  final isEmergency = data['priority'] == 'high';
-                  return _buildComplaintCard(docs[index], isEmergency, context);
+                  return _buildComplaintCard(docs[index], context);
                 },
               );
             },
@@ -108,31 +115,34 @@ class _ComplaintsViewState extends State<ComplaintsView> {
   }
 
   Widget _buildFilterBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: Colors.white,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: statuses.map((status) {
-            final isSelected = selectedStatus == status;
-            return Padding(
-              padding: const EdgeInsets.only(right: 4.0),
-              child: ChoiceChip(
-                label: Text(status, style: const TextStyle(fontSize: 11)),
-                selected: isSelected,
-                onSelected: (val) {
-                  if (val) setState(() => selectedStatus = status);
-                },
-                selectedColor: Colors.blueAccent,
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black87,
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: statuses.map((status) {
+          final isSelected = selectedStatus == status;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(status),
+              selected: isSelected,
+              onSelected: (val) {
+                if (val) setState(() => selectedStatus = status);
+              },
+              backgroundColor: AppColors.textFieldBg,
+              selectedColor: AppColors.primaryAccent.withOpacity(0.2),
+              labelStyle: TextStyle(
+                color: isSelected
+                    ? AppColors.primaryAccent
+                    : AppColors.textSecondary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
-            );
-          }).toList(),
-        ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -144,46 +154,55 @@ class _ComplaintsViewState extends State<ComplaintsView> {
     return query.snapshots();
   }
 
-  Widget _buildComplaintCard(
-    DocumentSnapshot doc,
-    bool isEmergency,
-    BuildContext context,
-  ) {
+  Widget _buildComplaintCard(DocumentSnapshot doc, BuildContext context) {
     final data = doc.data() as Map<String, dynamic>;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isEmergency
-            ? const BorderSide(color: Colors.red, width: 1.5)
-            : BorderSide.none,
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        leading: Icon(
-          isEmergency ? Icons.warning_rounded : Icons.report_problem_outlined,
-          color: isEmergency ? Colors.red : Colors.blueAccent,
+    final isHigh = data['priority'] == 'high';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
+        showGlow: isHigh,
+        padding: const EdgeInsets.all(16),
+        child: ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: (isHigh ? Colors.redAccent : AppColors.primaryAccent)
+                  .withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isHigh
+                  ? Icons.priority_high_rounded
+                  : Icons.confirmation_number_rounded,
+              color: isHigh ? Colors.redAccent : AppColors.primaryAccent,
+            ),
+          ),
+          title: Text(
+            data['title'] ?? 'N/A',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          subtitle: Text(
+            "${data['room'] ?? 'N/A'} • ${data['status']}",
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          trailing: const Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: AppColors.textSecondary,
+          ),
         ),
-        title: Text(
-          data['title'] ?? 'No Title',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        subtitle: Text(
-          "${data['room'] ?? 'N/A'} | ${data['issueDescription'] ?? data['description'] ?? ''}",
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 12),
-        ),
-        trailing: isEmergency
-            ? const Icon(Icons.priority_high, color: Colors.red, size: 18)
-            : null,
       ),
     );
   }
 }
 
-// 📌 1. CONTRACTOR APPROVAL VIEW
 class ContractorApprovalView extends StatelessWidget {
   const ContractorApprovalView({super.key});
 
@@ -200,52 +219,68 @@ class ContractorApprovalView extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         final docs = snapshot.data!.docs;
         if (docs.isEmpty)
-          return const Center(child: Text("No pending approvals."));
+          return const Center(
+            child: Text(
+              "No Pending Clearances",
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          );
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 100, 16, 16),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: GlassCard(
                 child: Column(
                   children: [
                     ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.person)),
+                      contentPadding: EdgeInsets.zero,
+                      leading: const CircleAvatar(
+                        backgroundColor: AppColors.textFieldBg,
+                        child: Icon(Icons.person, color: Colors.white),
+                      ),
                       title: Text(
                         data['name'] ?? 'N/A',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                       subtitle: Text(
-                        "${data['specialization'] ?? 'N/A'} | ${data['phone'] ?? 'N/A'}",
+                        "${data['specialization']} • ${data['phone']}",
+                        style: const TextStyle(color: AppColors.textSecondary),
                       ),
                     ),
+                    const Divider(color: Colors.white10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
                           onPressed: () =>
-                              _handleApproval(context, docs[index].id, true),
-                          child: const Text(
-                            "ACCEPT",
-                            style: TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () =>
                               _handleApproval(context, docs[index].id, false),
                           child: const Text(
                             "REJECT",
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
+                            style: TextStyle(color: Colors.redAccent),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryAccent
+                                .withOpacity(0.2),
+                            foregroundColor: AppColors.primaryAccent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
+                          ),
+                          onPressed: () =>
+                              _handleApproval(context, docs[index].id, true),
+                          child: const Text(
+                            "APPROVE",
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -267,17 +302,16 @@ class ContractorApprovalView extends StatelessWidget {
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Contractor Approved")));
+      ).showSnackBar(const SnackBar(content: Text("Access Granted ✅")));
     } else {
       await FirebaseFirestore.instance.collection('users').doc(uid).delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Contractor Rejected & Deleted")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Access Revoked ❌")));
     }
   }
 }
 
-// 📌 2. CONTRACTORS LIST VIEW
 class ContractorListView extends StatelessWidget {
   const ContractorListView({super.key});
 
@@ -294,27 +328,45 @@ class ContractorListView extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         final docs = snapshot.data!.docs;
         if (docs.isEmpty)
-          return const Center(child: Text("No approved contractors."));
+          return const Center(
+            child: Text(
+              "Zero Contractors Active",
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          );
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 100, 16, 16),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.engineering)),
-                title: Text(
-                  data['name'] ?? 'N/A',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  "${data['specialization'] ?? 'N/A'} | ${data['phone'] ?? 'N/A'}",
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _confirmDelete(context, docs[index].id),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GlassCard(
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(
+                    Icons.engineering_rounded,
+                    color: AppColors.secondaryAccent,
+                  ),
+                  title: Text(
+                    data['name'] ?? 'N/A',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "${data['specialization']} • ${data['phone']}",
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(
+                      Icons.delete_sweep_rounded,
+                      color: Colors.redAccent,
+                    ),
+                    onPressed: () => _confirmDelete(context, docs[index].id),
+                  ),
                 ),
               ),
             );
@@ -328,14 +380,22 @@ class ContractorListView extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Confirm Delete"),
+        backgroundColor: AppColors.cardBg,
+        title: const Text(
+          "Terminal Revocation",
+          style: TextStyle(color: Colors.white),
+        ),
         content: const Text(
-          "Are you sure you want to delete this contractor? They will no longer be able to log in.",
+          "Permanently delete this contractor from the grid?",
+          style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("CANCEL"),
+            child: const Text(
+              "CANCEL",
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -344,11 +404,11 @@ class ContractorListView extends StatelessWidget {
                   .collection('users')
                   .doc(uid)
                   .delete();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Contractor Deleted")),
-              );
             },
-            child: const Text("DELETE", style: TextStyle(color: Colors.red)),
+            child: const Text(
+              "REVOKE",
+              style: TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -356,83 +416,91 @@ class ContractorListView extends StatelessWidget {
   }
 }
 
-// 📌 3. HOSTELS VIEW
 class HostelsView extends StatelessWidget {
   const HostelsView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Assuming hostels are fetched from a 'hostels' collection or inferred from users
-    // For this app, let's fetch all Warden users to identify hostels and then aggregate students
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('users').snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData)
           return const Center(child: CircularProgressIndicator());
         final allUsers = snapshot.data!.docs;
-
-        // Identify unique hostels and their wardens safely
-        final wardens = allUsers.where((u) {
-          final data = u.data() as Map<String, dynamic>?;
-          return data != null && data['role'] == 'Warden';
-        }).toList();
-
+        final wardens = allUsers
+            .where(
+              (u) => (u.data() as Map<String, dynamic>)['role'] == 'Warden',
+            )
+            .toList();
         final hostels = wardens
-            .map((w) {
-              final data = w.data() as Map<String, dynamic>?;
-              return data?['hostel'] as String?;
-            })
-            .whereType<String>()
+            .map((w) => (w.data() as Map<String, dynamic>)['hostel'] as String)
             .toSet()
             .toList();
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 100, 16, 16),
           itemCount: hostels.length,
           itemBuilder: (context, index) {
-            final hostelName = hostels[index];
-            final wardenDoc = wardens.firstWhere(
-              (w) => (w.data() as Map<String, dynamic>)['hostel'] == hostelName,
+            final hName = hostels[index];
+            final warden = wardens.firstWhere(
+              (w) => (w.data() as Map<String, dynamic>)['hostel'] == hName,
             );
-            final wardenData = wardenDoc.data() as Map<String, dynamic>;
-            final studentCount = allUsers.where((u) {
-              final data = u.data() as Map<String, dynamic>?;
-              return data != null &&
-                  data['role'] == 'Student' &&
-                  data['hostel'] == hostelName;
-            }).length;
+            final wData = warden.data() as Map<String, dynamic>;
+            final sCount = allUsers
+                .where(
+                  (u) =>
+                      (u.data() as Map<String, dynamic>)['role'] == 'Student' &&
+                      (u.data() as Map<String, dynamic>)['hostel'] == hName,
+                )
+                .length;
 
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: GlassCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      hostelName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          hName,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const Icon(
+                          Icons.apartment_rounded,
+                          color: AppColors.primaryAccent,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text("Warden: ${wardenData['name'] ?? 'N/A'}"),
-                    Text("Total Students: $studentCount"),
                     const SizedBox(height: 8),
-                    ElevatedButton(
+                    Text(
+                      "Custodian: ${wData['name']}",
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                    Text(
+                      "Population: $sCount units",
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 20),
+                    NeonButton(
+                      label: "INSPECT SECTOR",
+                      height: 45,
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => StudentListPage(
-                              hostelName: hostelName,
-                              wardenName: wardenData['name'] ?? 'N/A',
+                              hostelName: hName,
+                              wardenName: wData['name'],
                             ),
                           ),
                         );
                       },
-                      child: const Text("View Students"),
                     ),
                   ],
                 ),
@@ -445,7 +513,6 @@ class HostelsView extends StatelessWidget {
   }
 }
 
-// 📌 4. STUDENTS LIST PER HOSTEL PAGE
 class StudentListPage extends StatefulWidget {
   final String hostelName;
   final String wardenName;
@@ -465,76 +532,78 @@ class _StudentListPageState extends State<StudentListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(title: Text(widget.hostelName)),
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.blueAccent.withOpacity(0.1),
-            width: double.infinity,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Warden: ${widget.wardenName}",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  decoration: const InputDecoration(
-                    hintText: "Search student...",
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                    fillColor: Colors.white,
-                    filled: true,
-                  ),
-                  onChanged: (v) => setState(() => search = v.toLowerCase()),
-                ),
-              ],
+      body: FuturisticBackground(
+        child: Column(
+          children: [
+            const SizedBox(height: 100),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: CustomTextField(
+                label: "Scan Database...",
+                controller: TextEditingController(text: search),
+                prefixIcon: Icons.search_rounded,
+              ),
             ),
-          ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('users')
-                  .where('role', isEqualTo: 'Student')
-                  .where('hostel', isEqualTo: widget.hostelName)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData)
-                  return const Center(child: CircularProgressIndicator());
-                final students = snapshot.data!.docs.where((s) {
-                  final data = s.data() as Map<String, dynamic>?;
-                  if (data == null) return false;
-                  final name = (data['name'] ?? '').toString().toLowerCase();
-                  return name.contains(search);
-                }).toList();
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .where('role', isEqualTo: 'Student')
+                    .where('hostel', isEqualTo: widget.hostelName)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData)
+                    return const Center(child: CircularProgressIndicator());
+                  final students = snapshot.data!.docs.where((s) {
+                    final name = (s.data() as Map<String, dynamic>)['name']
+                        .toString()
+                        .toLowerCase();
+                    return name.contains(search.toLowerCase());
+                  }).toList();
 
-                if (students.isEmpty)
-                  return const Center(child: Text("No students found."));
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: students.length,
-                  itemBuilder: (context, index) {
-                    final s = students[index].data() as Map<String, dynamic>;
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        title: Text(
-                          s['name'] ?? 'N/A',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    itemCount: students.length,
+                    itemBuilder: (context, index) {
+                      final s = students[index].data() as Map<String, dynamic>;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: GlassCard(
+                          showGlow: false,
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              s['name'] ?? 'N/A',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              "Unit: ${s['room'] ?? 'N/A'}",
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            trailing: Text(
+                              s['studentId'] ?? '',
+                              style: const TextStyle(
+                                color: AppColors.primaryAccent,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
                         ),
-                        subtitle: Text("Room: ${s['room'] ?? 'N/A'}"),
-                        trailing: Text(s['phone'] ?? 'N/A'),
-                      ),
-                    );
-                  },
-                );
-              },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

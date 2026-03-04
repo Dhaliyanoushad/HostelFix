@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hostel_fix/services/notification_service.dart';
 import '../providers/user_provider.dart';
+import '../widgets/custom_widgets.dart';
+import '../theme/app_theme.dart';
 
 class WardenDashboard extends StatefulWidget {
   const WardenDashboard({super.key});
@@ -28,12 +30,13 @@ class _WardenDashboardState extends State<WardenDashboard> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(_getTitle()),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
@@ -44,46 +47,83 @@ class _WardenDashboardState extends State<WardenDashboard> {
           ),
         ],
       ),
-      body: _views[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Colors.pinkAccent,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: "Home"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.how_to_reg),
-            label: "Approvals",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: "Students"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.report_problem),
-            label: "Work",
-          ),
-        ],
+      body: FuturisticBackground(
+        child: SafeArea(
+          bottom: false,
+          child: IndexedStack(index: _currentIndex, children: _views),
+        ),
       ),
+      bottomNavigationBar: _buildFloatingNavBar(),
     );
   }
 
   String _getTitle() {
     switch (_currentIndex) {
       case 0:
-        return "Warden Overview";
+        return "Warden Hub";
       case 1:
-        return "Pending Students";
+        return "Identity Verification";
       case 2:
-        return "Hostel Students";
+        return "Inmate Directory";
       case 3:
-        return "Complaint Management";
+        return "Service Requests";
       default:
         return "Dashboard";
     }
   }
+
+  Widget _buildFloatingNavBar() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      height: 70,
+      decoration: BoxDecoration(
+        color: AppColors.cardBg.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(35),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black45,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _navItem(0, Icons.grid_view_rounded),
+          _navItem(1, Icons.how_to_reg_rounded),
+          _navItem(2, Icons.people_alt_rounded),
+          _navItem(3, Icons.handyman_rounded),
+        ],
+      ),
+    );
+  }
+
+  Widget _navItem(int index, IconData icon) {
+    bool isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: AppColors.secondaryAccent.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              )
+            : null,
+        child: Icon(
+          icon,
+          color: isSelected
+              ? AppColors.secondaryAccent
+              : AppColors.textSecondary,
+          size: 26,
+        ),
+      ),
+    );
+  }
 }
 
-// 📌 1. HOME VIEW WITH STATUS CARDS
 class WardenHomeView extends StatelessWidget {
   final String hostelName;
   const WardenHomeView({super.key, required this.hostelName});
@@ -99,7 +139,6 @@ class WardenHomeView extends StatelessWidget {
         if (!snapshot.hasData)
           return const Center(child: CircularProgressIndicator());
         final docs = snapshot.data!.docs;
-
         int pending = docs.where((doc) => doc['status'] == 'Pending').length;
         int assigned = docs.where((doc) => doc['status'] == 'Assigned').length;
         int inProgress = docs
@@ -110,29 +149,34 @@ class WardenHomeView extends StatelessWidget {
             .length;
 
         return GridView.count(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           crossAxisCount: 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
           children: [
             _buildStatCard(
-              "Pending",
+              "OPEN",
               pending,
-              Colors.orange,
-              Icons.new_releases,
+              Colors.orangeAccent,
+              Icons.new_releases_rounded,
             ),
-            _buildStatCard("Assigned", assigned, Colors.blue, Icons.person_add),
             _buildStatCard(
-              "In Progress",
+              "ALLOCATED",
+              assigned,
+              AppColors.primaryAccent,
+              Icons.person_add_rounded,
+            ),
+            _buildStatCard(
+              "PROCESSING",
               inProgress,
-              Colors.purple,
-              Icons.engineering,
+              Colors.purpleAccent,
+              Icons.memory_rounded,
             ),
             _buildStatCard(
-              "Completed",
+              "ARCHIVED",
               completed,
-              Colors.green,
-              Icons.check_circle,
+              Colors.greenAccent,
+              Icons.verified_rounded,
             ),
           ],
         );
@@ -141,33 +185,37 @@ class WardenHomeView extends StatelessWidget {
   }
 
   Widget _buildStatCard(String title, int count, Color color, IconData icon) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 40),
-            const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(
-              count.toString(),
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: AppColors.textSecondary,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            count.toString(),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// 📌 2. STUDENT APPROVAL VIEW
 class StudentApprovalView extends StatelessWidget {
   final String hostelName;
   const StudentApprovalView({super.key, required this.hostelName});
@@ -186,37 +234,58 @@ class StudentApprovalView extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         final docs = snapshot.data!.docs;
         if (docs.isEmpty)
-          return const Center(child: Text("No students waiting for approval."));
+          return const Center(
+            child: Text(
+              "All Scanned Data Verified",
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          );
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                title: Text(
-                  data['name'] ?? 'N/A',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  "Room: ${data['room'] ?? 'N/A'} | ${data['phone'] ?? 'N/A'}",
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.check_circle, color: Colors.green),
-                      onPressed: () =>
-                          _updateStatus(context, docs[index].id, true),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: GlassCard(
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    data['name'] ?? 'N/A',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.cancel, color: Colors.red),
-                      onPressed: () =>
-                          _updateStatus(context, docs[index].id, false),
+                  ),
+                  subtitle: Text(
+                    "Unit: ${data['room']} • ${data['phone']}",
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
                     ),
-                  ],
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.cancel_rounded,
+                          color: Colors.redAccent,
+                        ),
+                        onPressed: () =>
+                            _updateStatus(context, docs[index].id, false),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.greenAccent,
+                        ),
+                        onPressed: () =>
+                            _updateStatus(context, docs[index].id, true),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -233,17 +302,16 @@ class StudentApprovalView extends StatelessWidget {
       });
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Student Approved")));
+      ).showSnackBar(const SnackBar(content: Text("Access Authorized ✅")));
     } else {
       await FirebaseFirestore.instance.collection('users').doc(uid).delete();
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Student Rejected")));
+      ).showSnackBar(const SnackBar(content: Text("Access Denied ❌")));
     }
   }
 }
 
-// 📌 3. STUDENT LIST VIEW
 class WardenStudentListView extends StatelessWidget {
   final String hostelName;
   const WardenStudentListView({super.key, required this.hostelName});
@@ -261,24 +329,37 @@ class WardenStudentListView extends StatelessWidget {
         if (!snapshot.hasData)
           return const Center(child: CircularProgressIndicator());
         final docs = snapshot.data!.docs;
-        if (docs.isEmpty)
-          return const Center(child: Text("No approved students."));
-
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.person)),
-                title: Text(
-                  data['name'] ?? 'N/A',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GlassCard(
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const CircleAvatar(
+                    backgroundColor: AppColors.textFieldBg,
+                    child: Icon(Icons.person, color: Colors.white, size: 20),
+                  ),
+                  title: Text(
+                    data['name'] ?? 'N/A',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "Unit ${data['room']}",
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                  trailing: Icon(
+                    Icons.contact_phone_rounded,
+                    color: AppColors.primaryAccent.withOpacity(0.5),
+                    size: 18,
+                  ),
                 ),
-                subtitle: Text("Room: ${data['room'] ?? 'N/A'}"),
-                trailing: Text(data['phone'] ?? 'N/A'),
               ),
             );
           },
@@ -288,7 +369,6 @@ class WardenStudentListView extends StatelessWidget {
   }
 }
 
-// 📌 4. COMPLAINT MANAGEMENT VIEW
 class WardenComplaintsView extends StatelessWidget {
   final String hostelName;
   const WardenComplaintsView({super.key, required this.hostelName});
@@ -304,67 +384,76 @@ class WardenComplaintsView extends StatelessWidget {
         if (!snapshot.hasData)
           return const Center(child: CircularProgressIndicator());
         final docs = snapshot.data!.docs;
-        if (docs.isEmpty)
-          return const Center(child: Text("No complaints for this hostel."));
-
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
             final status = data['status'] ?? 'Pending';
+            final isHigh = data['priority'] == 'high';
 
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: GlassCard(
+                showGlow: isHigh,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          data['title'] ?? 'Title',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Text(
+                            data['title'] ?? 'Title',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                        _buildStatusBadge(status),
+                        _buildStatusTag(status),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(data['issueDescription'] ?? data['description'] ?? ''),
-                    const Divider(),
+                    const SizedBox(height: 12),
+                    Text(
+                      data['issueDescription'] ?? data['description'] ?? '',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Divider(color: Colors.white10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Room: ${data['room'] ?? 'N/A'}",
-                          style: const TextStyle(color: Colors.grey),
+                          "Unit: ${data['room']}",
+                          style: const TextStyle(
+                            color: AppColors.primaryAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         Row(
                           children: [
                             if (status == 'Pending')
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  foregroundColor: Colors.white,
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.person_add_alt_1_rounded,
+                                  color: AppColors.secondaryAccent,
                                 ),
                                 onPressed: () =>
                                     _showAssignDialog(context, docs[index].id),
-                                child: const Text("ASSIGN"),
                               ),
-                            const SizedBox(width: 8),
                             if (status != 'Closed' && status != 'Completed')
-                              OutlinedButton(
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.verified_user_rounded,
+                                  color: Colors.greenAccent,
+                                ),
                                 onPressed: () =>
                                     _closeComplaint(context, docs[index].id),
-                                child: const Text(
-                                  "CLOSE",
-                                  style: TextStyle(color: Colors.red),
-                                ),
                               ),
                           ],
                         ),
@@ -380,25 +469,27 @@ class WardenComplaintsView extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
-    Color color = Colors.orange;
-    if (status == 'Assigned') color = Colors.blue;
-    if (status == 'In Progress') color = Colors.purple;
-    if (status == 'Completed') color = Colors.green;
-    if (status == 'Closed') color = Colors.grey;
+  Widget _buildStatusTag(String status) {
+    Color color = Colors.orangeAccent;
+    if (status == 'Assigned') color = AppColors.primaryAccent;
+    if (status == 'In Progress') color = Colors.purpleAccent;
+    if (status == 'Completed') color = Colors.greenAccent;
+    if (status == 'Closed') color = Colors.blueGrey;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.5)),
       ),
       child: Text(
-        status,
+        status.toUpperCase(),
         style: TextStyle(
           color: color,
-          fontSize: 10,
+          fontSize: 9,
           fontWeight: FontWeight.bold,
+          letterSpacing: 1,
         ),
       ),
     );
@@ -408,7 +499,11 @@ class WardenComplaintsView extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Assign Contractor"),
+        backgroundColor: AppColors.cardBg,
+        title: const Text(
+          "Assign Operative",
+          style: TextStyle(color: Colors.white),
+        ),
         content: SizedBox(
           width: double.maxFinite,
           height: 300,
@@ -427,8 +522,18 @@ class WardenComplaintsView extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final c = docs[index].data() as Map<String, dynamic>;
                   return ListTile(
-                    title: Text(c['name'] ?? 'N/A'),
-                    subtitle: Text(c['specialization'] ?? 'N/A'),
+                    title: Text(
+                      c['name'] ?? 'N/A',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      c['specialization'] ?? 'N/A',
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                    trailing: const Icon(
+                      Icons.bolt_rounded,
+                      color: AppColors.primaryAccent,
+                    ),
                     onTap: () async {
                       await FirebaseFirestore.instance
                           .collection('complaints')
@@ -454,11 +559,11 @@ class WardenComplaintsView extends StatelessWidget {
       'status': 'Closed',
     });
     await NotificationService.showNotification(
-      title: "Complaint Closed",
-      body: "Your complaint has been resolved/closed by the warden.",
+      title: "Task Resolved",
+      body: "Resolution update for ticket #$id has been finalized.",
     );
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text("Complaint Closed")));
+    ).showSnackBar(const SnackBar(content: Text("Archive Finalized ✅")));
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'signup_page.dart';
+import '../widgets/custom_widgets.dart';
+import '../theme/app_theme.dart';
 
 class SelectSignupRoleScreen extends StatelessWidget {
   const SelectSignupRoleScreen({super.key});
@@ -8,103 +9,101 @@ class SelectSignupRoleScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF81C784),
-              Color(0xFF388E3C),
-            ], // Green gradient for signup
-          ),
-        ),
+      body: FuturisticBackground(
         child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                "Create Account",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                "Select your role to register",
-                style: TextStyle(fontSize: 16, color: Colors.white70),
-              ),
-              const SizedBox(height: 40),
-              Wrap(
-                spacing: 20,
-                runSpacing: 20,
-                alignment: WrapAlignment.center,
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildGlassButton(
-                    context,
-                    "Student",
-                    Icons.person,
-                    Colors.orange,
+                  const Text(
+                    "Join HostelFix",
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                  _buildGlassButton(
-                    context,
-                    "Warden",
-                    Icons.woman,
-                    Colors.pink,
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Select your role to register",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                  _buildGlassButton(
-                    context,
-                    "Admin",
-                    Icons.admin_panel_settings,
-                    Colors.red,
-                  ),
-                  _buildGlassButton(
-                    context,
-                    "Contractor",
-                    Icons.handyman,
-                    Colors.blue,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/select-role');
-                },
-                child: RichText(
-                  text: const TextSpan(
-                    style: TextStyle(fontSize: 14),
+                  const SizedBox(height: 48),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
                     children: [
-                      TextSpan(
-                        text: "Already have an account? ",
-                        style: TextStyle(color: Colors.white70),
+                      _buildRoleCard(
+                        context,
+                        "Student",
+                        Icons.person,
+                        AppColors.secondaryAccent,
                       ),
-                      TextSpan(
-                        text: "Login",
-                        style: TextStyle(
-                          color: Color(0xFF64B5F6),
-                          fontWeight: FontWeight.bold,
-                        ),
+                      _buildRoleCard(
+                        context,
+                        "Warden",
+                        Icons.security,
+                        Colors.pinkAccent,
+                      ),
+                      _buildRoleCard(
+                        context,
+                        "Admin",
+                        Icons.admin_panel_settings,
+                        Colors.redAccent,
+                      ),
+                      _buildRoleCard(
+                        context,
+                        "Contractor",
+                        Icons.handyman,
+                        Colors.greenAccent,
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 48),
+                  GestureDetector(
+                    onTap: () =>
+                        Navigator.pushReplacementNamed(context, '/select-role'),
+                    child: RichText(
+                      text: const TextSpan(
+                        style: TextStyle(fontSize: 14),
+                        children: [
+                          TextSpan(
+                            text: "Already have an account? ",
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                          TextSpan(
+                            text: "Login",
+                            style: TextStyle(
+                              color: AppColors.primaryAccent,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildGlassButton(
+  Widget _buildRoleCard(
     BuildContext context,
     String role,
     IconData icon,
-    Color iconColor,
+    Color color,
   ) {
     return GestureDetector(
       onTap: () {
@@ -113,34 +112,23 @@ class SelectSignupRoleScreen extends StatelessWidget {
           MaterialPageRoute(builder: (context) => SignupPage(role: role)),
         );
       },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            width: 150,
-            height: 150,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+      child: GlassCard(
+        showGlow: true,
+        padding: EdgeInsets.zero,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 48, color: color),
+            const SizedBox(height: 12),
+            Text(
+              role,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 50, color: Colors.white),
-                const SizedBox(height: 10),
-                Text(
-                  role,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );

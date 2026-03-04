@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hostel_fix/services/notification_service.dart';
 import '../providers/user_provider.dart';
+import '../widgets/custom_widgets.dart';
+import '../theme/app_theme.dart';
 
 class ContractorDashboard extends StatefulWidget {
   const ContractorDashboard({super.key});
@@ -18,16 +20,15 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
-    final contractorId = userProvider.uid;
+    final contractorId = Provider.of<UserProvider>(context).uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Contractor Tasks"),
+        title: const Text("Operative Task-Log"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
@@ -38,104 +39,183 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildFilterBar(),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('complaints')
-                  .where('assignedContractorId', isEqualTo: contractorId)
-                  .where('status', isEqualTo: selectedStatus)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData)
-                  return const Center(child: CircularProgressIndicator());
-                final complaints = snapshot.data!.docs;
+      body: FuturisticBackground(
+        child: Column(
+          children: [
+            const SizedBox(height: 100),
+            _buildFilterBar(),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('complaints')
+                    .where('assignedContractorId', isEqualTo: contractorId)
+                    .where('status', isEqualTo: selectedStatus)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData)
+                    return const Center(child: CircularProgressIndicator());
+                  final complaints = snapshot.data!.docs;
 
-                if (complaints.isEmpty) {
-                  return const Center(
-                    child: Text("No tasks found in this category."),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: complaints.length,
-                  itemBuilder: (context, index) {
-                    final doc = complaints[index];
-                    final data = doc.data() as Map<String, dynamic>;
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              data['title'] ?? 'Task',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Room: ${data['room'] ?? 'N/A'} | Hostel: ${data['hostel'] ?? 'N/A'}",
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              data['issueDescription'] ??
-                                  data['description'] ??
-                                  '',
-                            ),
-                            const Divider(),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                if (selectedStatus == 'Assigned')
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    onPressed: () => _updateTaskStatus(
-                                      doc.id,
-                                      'In Progress',
-                                    ),
-                                    child: const Text("ACCEPT WORK"),
-                                  ),
-                                if (selectedStatus == 'In Progress')
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    onPressed: () =>
-                                        _updateTaskStatus(doc.id, 'Completed'),
-                                    child: const Text("COMPLETE"),
-                                  ),
-                                if (selectedStatus == 'Completed')
-                                  const Chip(
-                                    label: Text("Done"),
-                                    backgroundColor: Colors.greenAccent,
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
+                  if (complaints.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "Zero assignments in this sector",
+                        style: TextStyle(color: AppColors.textSecondary),
                       ),
                     );
-                  },
-                );
-              },
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(24),
+                    itemCount: complaints.length,
+                    itemBuilder: (context, index) {
+                      final doc = complaints[index];
+                      final data = doc.data() as Map<String, dynamic>;
+                      final isHigh = data['priority'] == 'high';
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: GlassCard(
+                          showGlow: isHigh,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      data['title'] ?? 'Task',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isHigh)
+                                    const Icon(
+                                      Icons.bolt_rounded,
+                                      color: Colors.orangeAccent,
+                                      size: 20,
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.location_on_rounded,
+                                    size: 14,
+                                    color: AppColors.primaryAccent,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "${data['hostel']} • Room ${data['room']}",
+                                    style: const TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                data['issueDescription'] ??
+                                    data['description'] ??
+                                    '',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const Divider(color: Colors.white10, height: 24),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (selectedStatus == 'Assigned')
+                                    NeonButton(
+                                      label: "INITIALIZE WORK",
+                                      height: 45,
+                                      onPressed: () => _updateTaskStatus(
+                                        doc.id,
+                                        'In Progress',
+                                      ),
+                                    ),
+                                  if (selectedStatus == 'In Progress')
+                                    NeonButton(
+                                      label: "COMPLETE TASK",
+                                      height: 45,
+                                      onPressed: () => _updateTaskStatus(
+                                        doc.id,
+                                        'Completed',
+                                      ),
+                                    ),
+                                  if (selectedStatus == 'Completed')
+                                    const Icon(
+                                      Icons.verified_rounded,
+                                      color: Colors.greenAccent,
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: AppColors.textFieldBg,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: statuses.map((status) {
+            final isSelected = selectedStatus == status;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => selectedStatus = status),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primaryAccent.withOpacity(0.2)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      status,
+                      style: TextStyle(
+                        color: isSelected
+                            ? AppColors.primaryAccent
+                            : AppColors.textSecondary,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -150,35 +230,8 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
         body: "The contractor has finished working on your complaint.",
       );
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("Task updated to $newStatus")));
-  }
-
-  Widget _buildFilterBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Colors.white,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: statuses.map((status) {
-          final isSelected = selectedStatus == status;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: ChoiceChip(
-              label: Text(status),
-              selected: isSelected,
-              onSelected: (val) {
-                if (val) setState(() => selectedStatus = status);
-              },
-              selectedColor: Colors.orangeAccent,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87,
-              ),
-            ),
-          );
-        }).toList(),
-      ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Sector Registry Updated: $newStatus")),
     );
   }
 }

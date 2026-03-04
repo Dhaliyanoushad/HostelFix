@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'providers/user_provider.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'theme/app_theme.dart';
 
 import 'screens/landing_page.dart';
 import 'screens/select_role_screen.dart';
@@ -39,7 +41,31 @@ class HostelFixApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'HostelFix',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: AppColors.background,
+        primaryColor: AppColors.primaryAccent,
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          titleTextStyle: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          centerTitle: true,
+        ),
+        textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme)
+            .copyWith(
+              bodyLarge: const TextStyle(color: AppColors.textPrimary),
+              bodyMedium: const TextStyle(color: AppColors.textSecondary),
+            ),
+        colorScheme: const ColorScheme.dark().copyWith(
+          primary: AppColors.primaryAccent,
+          secondary: AppColors.secondaryAccent,
+          surface: AppColors.cardBg,
+          background: AppColors.background,
+        ),
+      ),
       initialRoute: '/',
       builder: (context, child) {
         return _AuthWrapper(child: child!);
@@ -81,7 +107,9 @@ class _AuthWrapperState extends State<_AuthWrapper> {
   Future<void> _checkAuth() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final userData = await AuthService().fetchUserData(user.uid);
+      final userData = await AuthService()
+          .fetchUserData(user.uid)
+          .timeout(const Duration(seconds: 10), onTimeout: () => null);
       if (userData != null && mounted) {
         Provider.of<UserProvider>(context, listen: false).setUser(userData);
       }
