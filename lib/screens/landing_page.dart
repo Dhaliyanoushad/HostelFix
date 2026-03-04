@@ -95,11 +95,19 @@ class _LandingPageState extends State<LandingPage> {
           const SizedBox(height: 30),
           Text(
             data.title,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.cinzel(
               color: Colors.white,
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              height: 1.2,
+              height: 1.1,
+              letterSpacing: 2,
+              shadows: [
+                Shadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 15),
