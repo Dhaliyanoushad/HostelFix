@@ -11,11 +11,12 @@ import 'screens/landing_page.dart';
 import 'screens/select_role_screen.dart';
 import 'screens/login_page.dart';
 import 'screens/signup_page.dart';
+import 'screens/select_signup_role_screen.dart';
 import 'screens/dashboard_page.dart';
 import 'screens/report_issue_page.dart';
 import 'screens/my_complaints_page.dart';
 import 'screens/admin_dashboard.dart';
-import 'screens/matron_dashboard.dart';
+import 'screens/warden_dashboard.dart';
 import 'screens/contractor_dashboard.dart';
 
 Future<void> main() async {
@@ -46,11 +47,12 @@ class HostelFixApp extends StatelessWidget {
       routes: {
         '/': (context) => const LandingPage(),
         '/select-role': (context) => const SelectRoleScreen(),
+        '/select-signup-role': (context) => const SelectSignupRoleScreen(),
         '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignupPage(),
         '/dashboard': (context) => const DashboardPage(),
         '/admin-dashboard': (context) => const AdminDashboard(),
-        '/matron-dashboard': (context) => const MatronDashboard(),
+        '/warden-dashboard': (context) => const WardenDashboard(),
         '/contractor-dashboard': (context) => const ContractorDashboard(),
         '/report-issue': (context) => const ReportIssuePage(),
         '/my-complaints': (context) => const MyComplaintsPage(),

@@ -15,25 +15,45 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final AuthService _auth = AuthService();
 
-  String email = '';
+  String identity = ''; // Can be email, studentId, or phone
   String password = '';
   bool loading = false;
 
   void login() async {
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter Email and Password")),
-      );
+    if (identity.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please enter Credentials")));
       return;
     }
 
     setState(() => loading = true);
 
     try {
-      Map<String, dynamic>? userData = await _auth.loginWithEmail(
-        email: email,
-        password: password,
-      );
+      String selectedRole = widget.role ?? 'Student';
+      Map<String, dynamic>? userData;
+
+      if (identity.contains('@')) {
+        userData = await _auth.loginWithEmail(
+          email: identity,
+          password: password,
+        );
+      } else if (selectedRole == 'Student') {
+        userData = await _auth.loginWithStudentId(
+          studentId: identity,
+          password: password,
+        );
+      } else if (selectedRole == 'Contractor') {
+        userData = await _auth.loginWithPhone(
+          phone: identity,
+          password: password,
+        );
+      } else {
+        userData = await _auth.loginWithEmail(
+          email: identity,
+          password: password,
+        );
+      }
 
       if (userData != null) {
         // Check if role matches if provided
@@ -52,10 +72,10 @@ class _LoginPageState extends State<LoginPage> {
             '/admin-dashboard',
             (r) => false,
           );
-        } else if (role == 'Matron') {
+        } else if (role == 'Warden') {
           Navigator.pushNamedAndRemoveUntil(
             context,
-            '/matron-dashboard',
+            '/warden-dashboard',
             (r) => false,
           );
         } else if (role == 'Contractor') {
@@ -84,10 +104,18 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     String roleTitle = widget.role ?? "User";
-    String idLabel = widget.role == "Student" ? "Email" : "Identity ID";
-    String passLabel = widget.role == "Student"
-        ? "Student Passcode"
-        : "Password";
+    String idLabel = "Email";
+    IconData idIcon = Icons.email;
+
+    if (widget.role == "Student") {
+      idLabel = "Email";
+      idIcon = Icons.email;
+    } else if (widget.role == "Contractor") {
+      idLabel = "Email or Phone";
+      idIcon = Icons.contact_mail;
+    }
+
+    String passLabel = "Password";
 
     return Scaffold(
       appBar: AppBar(title: Text('$roleTitle Login')),
@@ -96,9 +124,9 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            if (widget.role == "Matron")
+            if (widget.role == "Warden")
               const Text(
-                "Matron Login – Hostel Management",
+                "Warden Login – Hostel Management",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             const SizedBox(height: 30),
@@ -106,9 +134,9 @@ class _LoginPageState extends State<LoginPage> {
               decoration: InputDecoration(
                 labelText: idLabel,
                 border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.email),
+                prefixIcon: Icon(idIcon),
               ),
-              onChanged: (v) => email = v,
+              onChanged: (v) => identity = v,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -142,7 +170,7 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 20),
             TextButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/signup');
+                Navigator.pushNamed(context, '/select-signup-role');
               },
               child: const Text("Don't have an account? Sign Up"),
             ),

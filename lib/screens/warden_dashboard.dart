@@ -23,6 +23,9 @@ class _WardenDashboardState extends State<WardenDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final wardenHostel = userProvider.hostel;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
@@ -45,7 +48,7 @@ class _WardenDashboardState extends State<WardenDashboard> {
           _buildFilterBar(),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _getComplaintsStream(),
+              stream: _getComplaintsStream(wardenHostel),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -146,8 +149,14 @@ class _WardenDashboardState extends State<WardenDashboard> {
     );
   }
 
-  Stream<QuerySnapshot> _getComplaintsStream() {
+  Stream<QuerySnapshot> _getComplaintsStream(String? wardenHostel) {
     Query query = FirebaseFirestore.instance.collection('complaints');
+
+    // Filter by Warden's hostel
+    if (wardenHostel != null && wardenHostel.isNotEmpty) {
+      query = query.where('hostel', isEqualTo: wardenHostel);
+    }
+
     if (selectedStatus != 'All') {
       query = query.where('status', isEqualTo: selectedStatus);
     }
