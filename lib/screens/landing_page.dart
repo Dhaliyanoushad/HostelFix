@@ -14,6 +14,13 @@ class _LandingPageState extends State<LandingPage> {
 
   final List<OnboardingData> _slides = [
     OnboardingData(
+      title: "Welcome to\nHostelFix",
+      description:
+          "Step into the future of hostel living. Reliable maintenance and seamless care, all in one place.",
+      image: "assets/images/onboarding_welcome.png",
+      icon: Icons.auto_awesome_rounded,
+    ),
+    OnboardingData(
       title: "Utilities Handled\nLife Continues",
       description:
           "Manage your property account, track consumption, spending and elevate your lifestyle.",
