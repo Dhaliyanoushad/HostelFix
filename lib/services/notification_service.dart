@@ -19,19 +19,16 @@ class NotificationService {
     await _notifications.initialize(settings);
   }
 
-  static Future<void> showEmergencyNotification({
+  static Future<void> showNotification({
     required String title,
     required String body,
   }) async {
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'emergency_channel',
-          'Emergency Complaints',
-          importance: Importance.max,
-          priority: Priority.high,
-          color: Color(0xFFFF0000),
-          playSound: true,
-          enableVibration: true,
+          'general_channel',
+          'General Notifications',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
         );
 
     const NotificationDetails details = NotificationDetails(
@@ -39,6 +36,28 @@ class NotificationService {
       iOS: DarwinNotificationDetails(),
     );
 
-    await _notifications.show(0, title, body, details);
+    await _notifications.show(1, title, body, details);
+  }
+
+  static Future<void> showEmergencyNotification({
+    required String title,
+    required String body,
+  }) async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'emergency_channel',
+          'Emergency Notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+          fullScreenIntent: true,
+          playSound: true,
+        );
+
+    const NotificationDetails details = NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(presentSound: true, presentAlert: true),
+    );
+
+    await _notifications.show(2, title, body, details);
   }
 }

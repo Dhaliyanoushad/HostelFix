@@ -179,6 +179,12 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
           body:
               "New high priority complaint from room ${roomController.text.trim()}",
         );
+      } else {
+        await NotificationService.showNotification(
+          title: "New Complaint: ${titleController.text.trim()}",
+          body:
+              "A new complaint has been submitted from room ${roomController.text.trim()}",
+        );
       }
 
       ScaffoldMessenger.of(context).showSnackBar(

@@ -73,6 +73,14 @@ class _LoginPageState extends State<LoginPage> {
           }
         }
 
+        // 🛡️ Student Status Check
+        if (userData['role'] == 'Student') {
+          if (userData['status'] == 'pending') {
+            await _auth.logout();
+            throw 'Your account is waiting for warden approval.';
+          }
+        }
+
         // Store in Provider
         Provider.of<UserProvider>(context, listen: false).setUser(userData);
 
