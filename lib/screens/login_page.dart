@@ -62,6 +62,17 @@ class _LoginPageState extends State<LoginPage> {
           throw 'Unauthorized: You are not a ${widget.role}';
         }
 
+        // 🛡️ Contractor Status Check
+        if (userData['role'] == 'Contractor') {
+          if (userData['status'] == 'pending') {
+            await _auth.logout();
+            throw 'Your account is waiting for admin approval.';
+          } else if (userData['status'] != 'approved') {
+            await _auth.logout();
+            throw 'Account not found.';
+          }
+        }
+
         // Store in Provider
         Provider.of<UserProvider>(context, listen: false).setUser(userData);
 
@@ -91,6 +102,8 @@ class _LoginPageState extends State<LoginPage> {
             (r) => false,
           );
         }
+      } else {
+        throw 'Account not found.';
       }
     } catch (e) {
       ScaffoldMessenger.of(
