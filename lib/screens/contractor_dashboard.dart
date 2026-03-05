@@ -17,11 +17,31 @@ class ContractorDashboard extends StatefulWidget {
 class _ContractorDashboardState extends State<ContractorDashboard> {
   String selectedStatus = 'Assigned';
   final List<String> statuses = ['Assigned', 'In Progress', 'Completed'];
+  Stream<QuerySnapshot>? _complaintsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initStream();
+    });
+  }
+
+  void _initStream() {
+    final contractorId = Provider.of<UserProvider>(context, listen: false).uid;
+    if (contractorId != null) {
+      setState(() {
+        _complaintsStream = FirebaseFirestore.instance
+            .collection('complaints')
+            .where('assignedContractorId', isEqualTo: contractorId)
+            .where('status', isEqualTo: selectedStatus)
+            .snapshots();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final contractorId = Provider.of<UserProvider>(context).uid;
-
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -46,12 +66,16 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
             _buildFilterBar(),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('complaints')
-                    .where('assignedContractorId', isEqualTo: contractorId)
-                    .where('status', isEqualTo: selectedStatus)
-                    .snapshots(),
+                stream: _complaintsStream,
                 builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        "Error loading tasks: ${snapshot.error}",
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    );
+                  }
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
@@ -136,18 +160,59 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   if (selectedStatus == 'Assigned')
-                                    NeonButton(
-                                      label: "INITIALIZE WORK",
-                                      height: 45,
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primaryAccent
+                                            .withValues(alpha: 0.2),
+                                        foregroundColor:
+                                            AppColors.primaryAccent,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.play_arrow_rounded,
+                                        size: 18,
+                                      ),
+                                      label: const Text(
+                                        "INITIALIZE",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                       onPressed: () => _updateTaskStatus(
                                         doc.id,
                                         'In Progress',
                                       ),
                                     ),
                                   if (selectedStatus == 'In Progress')
-                                    NeonButton(
-                                      label: "COMPLETE TASK",
-                                      height: 45,
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.greenAccent
+                                            .withValues(alpha: 0.2),
+                                        foregroundColor: Colors.greenAccent,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.check_rounded,
+                                        size: 18,
+                                      ),
+                                      label: const Text(
+                                        "COMPLETE",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                       onPressed: () => _updateTaskStatus(
                                         doc.id,
                                         'Completed',
@@ -189,7 +254,10 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
             final isSelected = selectedStatus == status;
             return Expanded(
               child: GestureDetector(
-                onTap: () => setState(() => selectedStatus = status),
+                onTap: () {
+                  setState(() => selectedStatus = status);
+                  _initStream();
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
