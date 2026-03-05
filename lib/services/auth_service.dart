@@ -34,6 +34,9 @@ class AuthService {
         'gender': gender,
         'phone': phone,
         'specialization': specialization,
+        'status': (role == 'Contractor' || role == 'Student')
+            ? 'pending'
+            : 'approved',
         'createdAt': FieldValue.serverTimestamp(),
       };
 

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hostel_fix/services/notification_service.dart';
 import '../providers/user_provider.dart';
+import '../widgets/custom_widgets.dart';
+import '../theme/app_theme.dart';
 
 class WardenDashboard extends StatefulWidget {
   const WardenDashboard({super.key});
@@ -12,27 +15,28 @@ class WardenDashboard extends StatefulWidget {
 }
 
 class _WardenDashboardState extends State<WardenDashboard> {
-  String selectedStatus = 'All';
-  final List<String> statuses = [
-    'All',
-    'Pending',
-    'Assigned',
-    'In Progress',
-    'Completed',
-  ];
+  int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-    final wardenHostel = userProvider.hostel;
+    final String wardenHostel = userProvider.hostel ?? '';
+
+    final List<Widget> views = [
+      WardenHomeView(hostelName: wardenHostel),
+      StudentApprovalView(hostelName: wardenHostel),
+      WardenStudentListView(hostelName: wardenHostel),
+      WardenComplaintsView(hostelName: wardenHostel),
+    ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Warden Dashboard"),
+        title: Text(_getTitle()),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
@@ -43,191 +47,574 @@ class _WardenDashboardState extends State<WardenDashboard> {
           ),
         ],
       ),
-      body: Column(
+      body: FuturisticBackground(
+        child: SafeArea(
+          bottom: false,
+          child: IndexedStack(index: _currentIndex, children: views),
+        ),
+      ),
+      bottomNavigationBar: _buildFloatingNavBar(),
+    );
+  }
+
+  String _getTitle() {
+    switch (_currentIndex) {
+      case 0:
+        return "Warden Hub";
+      case 1:
+        return "Identity Verification";
+      case 2:
+        return "Inmate Directory";
+      case 3:
+        return "Service Requests";
+      default:
+        return "Dashboard";
+    }
+  }
+
+  Widget _buildFloatingNavBar() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      height: 70,
+      decoration: BoxDecoration(
+        color: AppColors.cardBg.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(35),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black45,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildFilterBar(),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _getComplaintsStream(wardenHostel),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+          _navItem(0, Icons.grid_view_rounded),
+          _navItem(1, Icons.how_to_reg_rounded),
+          _navItem(2, Icons.people_alt_rounded),
+          _navItem(3, Icons.handyman_rounded),
+        ],
+      ),
+    );
+  }
 
-                // Client-side sorting
-                final allComplaints = snapshot.data!.docs.toList();
-                allComplaints.sort((a, b) {
-                  final t1 =
-                      (a.data() as Map<String, dynamic>)['createdAt']
-                          as Timestamp?;
-                  final t2 =
-                      (b.data() as Map<String, dynamic>)['createdAt']
-                          as Timestamp?;
-                  if (t1 == null) return 1;
-                  if (t2 == null) return -1;
-                  return t2.compareTo(t1);
-                });
+  Widget _navItem(int index, IconData icon) {
+    bool isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: AppColors.secondaryAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              )
+            : null,
+        child: Icon(
+          icon,
+          color: isSelected
+              ? AppColors.secondaryAccent
+              : AppColors.textSecondary,
+          size: 26,
+        ),
+      ),
+    );
+  }
+}
 
-                final emergencyComplaints = allComplaints
-                    .where((doc) => doc['priority'] == 'high')
-                    .toList();
-                final otherComplaints = allComplaints
-                    .where((doc) => doc['priority'] != 'high')
-                    .toList();
+class WardenHomeView extends StatelessWidget {
+  final String hostelName;
+  const WardenHomeView({super.key, required this.hostelName});
 
-                if (allComplaints.isEmpty) {
-                  return const Center(
-                    child: Text("No complaints match this filter."),
-                  );
-                }
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('complaints')
+          .where('hostel', isEqualTo: hostelName)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final docs = snapshot.data!.docs;
+        int pending = docs.where((doc) => doc['status'] == 'Pending').length;
+        int assigned = docs.where((doc) => doc['status'] == 'Assigned').length;
+        int inProgress = docs
+            .where((doc) => doc['status'] == 'In Progress')
+            .length;
+        int completed = docs
+            .where((doc) => doc['status'] == 'Completed')
+            .length;
 
-                return ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    if (emergencyComplaints.isNotEmpty) ...[
-                      const Text(
-                        "🚨 Pinned Emergency",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ...emergencyComplaints.map(
-                        (c) => buildWardenCard(c, true, context),
-                      ),
-                      const Divider(height: 32),
-                    ],
-                    const Text(
-                      "Complaints",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...otherComplaints.map(
-                      (c) => buildWardenCard(c, false, context),
-                    ),
-                  ],
-                );
-              },
+        return GridView.count(
+          padding: const EdgeInsets.all(24),
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          children: [
+            _buildStatCard(
+              "OPEN",
+              pending,
+              Colors.orangeAccent,
+              Icons.new_releases_rounded,
+            ),
+            _buildStatCard(
+              "ALLOCATED",
+              assigned,
+              AppColors.primaryAccent,
+              Icons.person_add_rounded,
+            ),
+            _buildStatCard(
+              "PROCESSING",
+              inProgress,
+              Colors.purpleAccent,
+              Icons.memory_rounded,
+            ),
+            _buildStatCard(
+              "ARCHIVED",
+              completed,
+              Colors.greenAccent,
+              Icons.verified_rounded,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStatCard(String title, int count, Color color, IconData icon) {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            count.toString(),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: color,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildFilterBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Colors.white,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: statuses.map((status) {
-            final isSelected = selectedStatus == status;
+class StudentApprovalView extends StatelessWidget {
+  final String hostelName;
+  const StudentApprovalView({super.key, required this.hostelName});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'Student')
+          .where('hostel', isEqualTo: hostelName)
+          .where('status', isEqualTo: 'pending')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final docs = snapshot.data!.docs;
+        if (docs.isEmpty) {
+          return const Center(
+            child: Text(
+              "All Scanned Data Verified",
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(24),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final data = docs[index].data() as Map<String, dynamic>;
             return Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: ChoiceChip(
-                label: Text(status),
-                selected: isSelected,
-                onSelected: (val) {
-                  if (val) setState(() => selectedStatus = status);
-                },
-                selectedColor: Colors.pinkAccent,
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black87,
+              padding: const EdgeInsets.only(bottom: 16),
+              child: GlassCard(
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    data['name'] ?? 'N/A',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "Unit: ${data['room']} • ${data['phone']}",
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.cancel_rounded,
+                          color: Colors.redAccent,
+                        ),
+                        onPressed: () =>
+                            _updateStatus(context, docs[index].id, false),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.greenAccent,
+                        ),
+                        onPressed: () =>
+                            _updateStatus(context, docs[index].id, true),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
-          }).toList(),
+          },
+        );
+      },
+    );
+  }
+
+  void _updateStatus(BuildContext context, String uid, bool approve) async {
+    if (approve) {
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'status': 'approved',
+      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Access Authorized ✅")));
+      }
+    } else {
+      await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Access Denied ❌")));
+      }
+    }
+  }
+}
+
+class WardenStudentListView extends StatelessWidget {
+  final String hostelName;
+  const WardenStudentListView({super.key, required this.hostelName});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'Student')
+          .where('hostel', isEqualTo: hostelName)
+          .where('status', isEqualTo: 'approved')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final docs = snapshot.data!.docs;
+        return ListView.builder(
+          padding: const EdgeInsets.all(24),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final data = docs[index].data() as Map<String, dynamic>;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: GlassCard(
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const CircleAvatar(
+                    backgroundColor: AppColors.textFieldBg,
+                    child: Icon(Icons.person, color: Colors.white, size: 20),
+                  ),
+                  title: Text(
+                    data['name'] ?? 'N/A',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "Unit ${data['room']}",
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                  trailing: Icon(
+                    Icons.contact_phone_rounded,
+                    color: AppColors.primaryAccent.withValues(alpha: 0.5),
+                    size: 18,
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class WardenComplaintsView extends StatelessWidget {
+  final String hostelName;
+  const WardenComplaintsView({super.key, required this.hostelName});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('complaints')
+          .where('hostel', isEqualTo: hostelName)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final docs = snapshot.data!.docs;
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final data = docs[index].data() as Map<String, dynamic>;
+            final status = data['status'] ?? 'Pending';
+            final isHigh = data['priority'] == 'high';
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: GlassCard(
+                showGlow: isHigh,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            data['title'] ?? 'Title',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        _buildStatusTag(status),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      data['issueDescription'] ?? data['description'] ?? '',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Divider(color: Colors.white10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Unit: ${data['room']}",
+                          style: const TextStyle(
+                            color: AppColors.primaryAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            if (status == 'Pending')
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.person_add_alt_1_rounded,
+                                  color: AppColors.secondaryAccent,
+                                ),
+                                onPressed: () =>
+                                    _showAssignDialog(context, docs[index].id),
+                              ),
+                            if (status != 'Closed' && status != 'Completed')
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.verified_user_rounded,
+                                  color: Colors.greenAccent,
+                                ),
+                                onPressed: () =>
+                                    _closeComplaint(context, docs[index].id),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildStatusTag(String status) {
+    Color color = Colors.orangeAccent;
+    if (status == 'Assigned') {
+      color = AppColors.primaryAccent;
+    }
+    if (status == 'In Progress') {
+      color = Colors.purpleAccent;
+    }
+    if (status == 'Completed') {
+      color = Colors.greenAccent;
+    }
+    if (status == 'Closed') {
+      color = Colors.blueGrey;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1,
         ),
       ),
     );
   }
 
-  Stream<QuerySnapshot> _getComplaintsStream(String? wardenHostel) {
-    Query query = FirebaseFirestore.instance.collection('complaints');
+  void _showAssignDialog(BuildContext context, String complaintId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardBg,
+        title: const Text(
+          "Assign Operative",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 300,
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .where('role', isEqualTo: 'Contractor')
+                .where('status', isEqualTo: 'approved')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final docs = snapshot.data!.docs;
+              return ListView.builder(
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final c = docs[index].data() as Map<String, dynamic>;
+                  return ListTile(
+                    title: Text(
+                      c['name'] ?? 'N/A',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      c['specialization'] ?? 'N/A',
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                    trailing: const Icon(
+                      Icons.bolt_rounded,
+                      color: AppColors.primaryAccent,
+                    ),
+                    onTap: () async {
+                      await FirebaseFirestore.instance
+                          .collection('complaints')
+                          .doc(complaintId)
+                          .update({
+                            'status': 'Assigned',
+                            'assignedContractorId': docs[index].id,
+                          });
 
-    // Filter by Warden's hostel
-    if (wardenHostel != null && wardenHostel.isNotEmpty) {
-      query = query.where('hostel', isEqualTo: wardenHostel);
-    }
+                      // Notify Student via Firestore Relay
+                      final compSnap = await FirebaseFirestore.instance
+                          .collection('complaints')
+                          .doc(complaintId)
+                          .get();
 
-    if (selectedStatus != 'All') {
-      query = query.where('status', isEqualTo: selectedStatus);
-    }
-    return query.snapshots();
-  }
+                      if (compSnap.exists) {
+                        final compData =
+                            compSnap.data() as Map<String, dynamic>;
+                        final studentId =
+                            compData['uid'] ?? compData['studentId'];
+                        final title = compData['title'] ?? 'Complaint';
 
-  Widget buildWardenCard(
-    DocumentSnapshot doc,
-    bool isEmergency,
-    BuildContext context,
-  ) {
-    final data = doc.data() as Map<String, dynamic>;
-    return Stack(
-      children: [
-        Card(
-          elevation: isEmergency ? 8 : 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: isEmergency
-                ? const BorderSide(color: Colors.redAccent, width: 2)
-                : BorderSide.none,
-          ),
-          color: isEmergency ? Colors.white.withOpacity(0.9) : Colors.white,
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            title: Text(
-              data['title'] ?? 'No Title',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              "Room ${data['room'] ?? 'N/A'} | ID: ${data['registerNumber'] ?? 'N/A'} | ${data['status'] ?? 'Pending'}\n${data['issueDescription'] ?? data['description'] ?? ''}",
-            ),
-            trailing: Wrap(
-              spacing: 8,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.person_add, color: Colors.blue),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.orange),
-                  onPressed: () {},
-                ),
-              ],
-            ),
+                        if (studentId != null) {
+                          await FirebaseFirestore.instance
+                              .collection('notifications')
+                              .add({
+                                'recipientId': studentId,
+                                'title': 'Task Assigned 🛠️',
+                                'body':
+                                    'Service request "$title" has been assigned to ${c['name']}.',
+                                'createdAt': FieldValue.serverTimestamp(),
+                                'read': false,
+                                'type': 'assignment',
+                              });
+                        }
+                      }
+
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx);
+                      }
+                    },
+                  );
+                },
+              );
+            },
           ),
         ),
-        if (isEmergency)
-          Positioned(
-            top: 0,
-            right: 15,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: const BoxDecoration(
-                color: Colors.redAccent,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(8),
-                  bottomRight: Radius.circular(8),
-                ),
-              ),
-              child: const Text(
-                "EMERGENCY",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-      ],
+      ),
     );
+  }
+
+  void _closeComplaint(BuildContext context, String id) async {
+    await FirebaseFirestore.instance.collection('complaints').doc(id).update({
+      'status': 'Closed',
+    });
+    await NotificationService.showNotification(
+      title: "Task Resolved",
+      body: "Resolution update for ticket #$id has been finalized.",
+    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Archive Finalized ✅")));
+    }
   }
 }

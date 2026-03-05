@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
+import '../widgets/custom_widgets.dart';
+import '../theme/app_theme.dart';
 
 class SignupPage extends StatefulWidget {
   final String? role;
@@ -15,14 +17,17 @@ class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
   final AuthService _auth = AuthService();
 
-  String name = '';
-  String email = '';
-  String studentId = '';
-  String phone = '';
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _studentIdController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   String hostel = '';
   String gender = 'Boy';
   String specialization = 'Electricity';
-  String password = '';
+  bool showPassword = false;
+  bool loading = false;
 
   final List<String> specializations = [
     'Electricity',
@@ -30,9 +35,6 @@ class _SignupPageState extends State<SignupPage> {
     'Cleaning',
     'Other',
   ];
-
-  bool loading = false;
-  bool showPassword = false;
 
   final Map<String, List<String>> hostelData = {
     'Boy': ['Sahara', 'Siberia', 'Swaraj', 'Sagar', 'Sarovar'],
@@ -48,22 +50,27 @@ class _SignupPageState extends State<SignupPage> {
     try {
       String selectedRole = widget.role ?? 'Student';
       Map<String, dynamic>? userData = await _auth.signUp(
-        name: name,
-        email: email,
-        studentId: selectedRole == 'Student' ? studentId : null,
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        studentId: selectedRole == 'Student'
+            ? _studentIdController.text.trim()
+            : null,
         hostel: (selectedRole == 'Student' || selectedRole == 'Warden')
             ? hostel
             : null,
         gender: (selectedRole == 'Student' || selectedRole == 'Warden')
             ? gender
             : null,
-        phone: selectedRole == 'Contractor' ? phone : null,
+        phone: selectedRole == 'Contractor'
+            ? _phoneController.text.trim()
+            : null,
         specialization: selectedRole == 'Contractor' ? specialization : null,
-        password: password,
+        password: _passwordController.text,
         role: selectedRole,
       );
 
       if (userData != null) {
+        if (!mounted) return;
         Provider.of<UserProvider>(context, listen: false).setUser(userData);
 
         if (selectedRole == 'Admin') {
@@ -93,9 +100,11 @@ class _SignupPageState extends State<SignupPage> {
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       setState(() => loading = false);
     }
@@ -106,125 +115,180 @@ class _SignupPageState extends State<SignupPage> {
     String selectedRole = widget.role ?? 'Student';
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(title: Text('$selectedRole Signup')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Full Name'),
-                onChanged: (v) => name = v,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Email Address'),
-                onChanged: (v) => email = v,
-                validator: (v) => v!.contains('@') ? null : 'Enter valid email',
-              ),
-              if (selectedRole == 'Student')
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Student ID'),
-                  onChanged: (v) => studentId = v,
-                  validator: (v) => v!.isEmpty ? 'Required' : null,
-                ),
-              if (selectedRole == 'Student' || selectedRole == 'Warden') ...[
-                DropdownButtonFormField(
-                  value: gender.isEmpty
-                      ? null
-                      : (selectedRole == 'Warden'
-                            ? (gender == 'Boy' ? 'Male' : 'Female')
-                            : gender),
-                  items:
-                      (selectedRole == 'Warden'
-                              ? wardenGenders.keys.toList()
-                              : hostelData.keys.toList())
-                          .map(
-                            (g) => DropdownMenuItem(value: g, child: Text(g)),
-                          )
-                          .toList(),
-                  onChanged: (v) {
-                    setState(() {
-                      if (selectedRole == 'Warden') {
-                        gender = wardenGenders[v]!;
-                      } else {
-                        gender = v!;
-                      }
-                      hostel = '';
-                    });
-                  },
-                  decoration: InputDecoration(
-                    labelText: selectedRole == 'Warden' ? 'Gender' : 'Gender',
-                    hintText: selectedRole == 'Warden'
-                        ? 'Select Male/Female'
-                        : 'Select Boy/Girl',
-                  ),
-                  validator: (v) => v == null ? 'Required' : null,
-                ),
-                DropdownButtonFormField(
-                  value: hostel.isEmpty ? null : hostel,
-                  items: hostelData[gender]!
-                      .map((h) => DropdownMenuItem(value: h, child: Text(h)))
-                      .toList(),
-                  onChanged: (v) => hostel = v!,
-                  decoration: const InputDecoration(labelText: 'Hostel'),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Please select a hostel' : null,
-                ),
-              ],
-              if (selectedRole == 'Contractor') ...[
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Phone Number'),
-                  keyboardType: TextInputType.phone,
-                  onChanged: (v) => phone = v,
-                  validator: (v) => v!.isEmpty ? 'Required' : null,
-                ),
-                DropdownButtonFormField(
-                  value: specialization,
-                  items: specializations
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                      .toList(),
-                  onChanged: (v) => setState(() => specialization = v!),
-                  decoration: const InputDecoration(
-                    labelText: 'Specialization',
-                  ),
-                  validator: (v) => v == null ? 'Required' : null,
-                ),
-              ],
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      showPassword ? Icons.visibility : Icons.visibility_off,
+      body: FuturisticBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: GlassCard(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.person_add_rounded,
+                      size: 64,
+                      color: AppColors.primaryAccent,
                     ),
-                    onPressed: () =>
-                        setState(() => showPassword = !showPassword),
-                  ),
-                ),
-                obscureText: !showPassword,
-                onChanged: (v) => password = v,
-                validator: (v) => v!.length < 6 ? 'Min 6 characters' : null,
-              ),
-              const SizedBox(height: 20),
-              loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
+                    const SizedBox(height: 24),
+                    Text(
+                      "$selectedRole Signup",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                        shadows: [
+                          Shadow(
+                            color: AppColors.primaryAccent.withValues(
+                              alpha: 0.3,
+                            ),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    CustomTextField(
+                      label: "Full Name",
+                      controller: _nameController,
+                      prefixIcon: Icons.badge_rounded,
+                      validator: (v) => v!.isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      label: "Email Address",
+                      controller: _emailController,
+                      prefixIcon: Icons.email_rounded,
+                      validator: (v) =>
+                          v!.contains('@') ? null : 'Enter valid email',
+                    ),
+                    const SizedBox(height: 16),
+                    if (selectedRole == 'Student') ...[
+                      CustomTextField(
+                        label: "Student ID / Roll No",
+                        controller: _studentIdController,
+                        prefixIcon: Icons.numbers_rounded,
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    if (selectedRole == 'Student' ||
+                        selectedRole == 'Warden') ...[
+                      _buildDropdown(
+                        label: "Gender",
+                        value: gender.isEmpty
+                            ? null
+                            : (selectedRole == 'Warden'
+                                  ? (gender == 'Boy' ? 'Male' : 'Female')
+                                  : gender),
+                        items: (selectedRole == 'Warden'
+                            ? wardenGenders.keys.toList()
+                            : hostelData.keys.toList()),
+                        onChanged: (v) {
+                          setState(() {
+                            if (selectedRole == 'Warden') {
+                              gender = wardenGenders[v]!;
+                            } else {
+                              gender = v!;
+                            }
+                            hostel = '';
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildDropdown(
+                        label: "Hostel Name",
+                        value: hostel.isEmpty ? null : hostel,
+                        items: hostelData[gender]!,
+                        onChanged: (v) => setState(() => hostel = v!),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    if (selectedRole == 'Contractor') ...[
+                      CustomTextField(
+                        label: "Phone Number",
+                        controller: _phoneController,
+                        prefixIcon: Icons.phone_rounded,
+                        keyboardType: TextInputType.phone,
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildDropdown(
+                        label: "Specialization",
+                        value: specialization,
+                        items: specializations,
+                        onChanged: (v) => setState(() => specialization = v!),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    CustomTextField(
+                      label: "Password",
+                      controller: _passwordController,
+                      isPassword: true,
+                      prefixIcon: Icons.lock_rounded,
+                      validator: (v) =>
+                          v!.length < 6 ? 'Min 6 characters' : null,
+                    ),
+                    const SizedBox(height: 40),
+                    NeonButton(
+                      label: "REGISTER",
                       onPressed: signup,
-                      child: Text('Create $selectedRole Account'),
+                      isLoading: loading,
                     ),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/login');
-                },
-                child: const Text('Already have an account? Login'),
+                    const SizedBox(height: 24),
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.pushReplacementNamed(context, '/login'),
+                      child: const Text(
+                        "Already have an account? Login",
+                        style: TextStyle(color: AppColors.secondaryAccent),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required Function(String?) onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      dropdownColor: AppColors.cardBg,
+      style: const TextStyle(color: Colors.white),
+      items: items
+          .map(
+            (g) => DropdownMenuItem(
+              value: g,
+              child: Text(g, style: const TextStyle(color: Colors.white)),
+            ),
+          )
+          .toList(),
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: AppColors.textSecondary),
+        filled: true,
+        fillColor: AppColors.textFieldBg,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.primaryAccent),
+        ),
+      ),
+      validator: (v) => v == null ? 'Required' : null,
     );
   }
 }
