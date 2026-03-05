@@ -161,7 +161,7 @@ class _LandingPageState extends State<LandingPage> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => Navigator.pushNamed(context, '/login'),
+                  onPressed: () => Navigator.pushNamed(context, '/select-role'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 52),
                     side: const BorderSide(color: Colors.white30),
