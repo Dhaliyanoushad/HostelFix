@@ -55,12 +55,6 @@ class SelectSignupRoleScreen extends StatelessWidget {
                       ),
                       _buildRoleCard(
                         context,
-                        "Admin",
-                        Icons.admin_panel_settings,
-                        Colors.redAccent,
-                      ),
-                      _buildRoleCard(
-                        context,
                         "Contractor",
                         Icons.handyman,
                         Colors.greenAccent,
