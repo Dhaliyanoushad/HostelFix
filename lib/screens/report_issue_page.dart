@@ -54,7 +54,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
                         color: AppColors.textPrimary,
                         shadows: [
                           Shadow(
-                            color: Colors.redAccent.withOpacity(0.3),
+                            color: Colors.redAccent.withValues(alpha: 0.3),
                             blurRadius: 8,
                           ),
                         ],
@@ -161,7 +161,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
     required Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       dropdownColor: AppColors.cardBg,
       style: const TextStyle(color: Colors.white),
       items: items
@@ -175,7 +175,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
         fillColor: AppColors.textFieldBg,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -202,7 +202,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: !isHigh
-                      ? AppColors.primaryAccent.withOpacity(0.2)
+                      ? AppColors.primaryAccent.withValues(alpha: 0.2)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -227,7 +227,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: isHigh
-                      ? Colors.redAccent.withOpacity(0.2)
+                      ? Colors.redAccent.withValues(alpha: 0.2)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -294,9 +294,11 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
         Navigator.pop(context);
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     } finally {
       setState(() => isLoading = false);
     }

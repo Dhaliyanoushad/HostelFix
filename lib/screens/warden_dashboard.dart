@@ -22,7 +22,7 @@ class _WardenDashboardState extends State<WardenDashboard> {
     final userProvider = Provider.of<UserProvider>(context);
     final String wardenHostel = userProvider.hostel ?? '';
 
-    final List<Widget> _views = [
+    final List<Widget> views = [
       WardenHomeView(hostelName: wardenHostel),
       StudentApprovalView(hostelName: wardenHostel),
       WardenStudentListView(hostelName: wardenHostel),
@@ -50,7 +50,7 @@ class _WardenDashboardState extends State<WardenDashboard> {
       body: FuturisticBackground(
         child: SafeArea(
           bottom: false,
-          child: IndexedStack(index: _currentIndex, children: _views),
+          child: IndexedStack(index: _currentIndex, children: views),
         ),
       ),
       bottomNavigationBar: _buildFloatingNavBar(),
@@ -77,9 +77,9 @@ class _WardenDashboardState extends State<WardenDashboard> {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       height: 70,
       decoration: BoxDecoration(
-        color: AppColors.cardBg.withOpacity(0.95),
+        color: AppColors.cardBg.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(35),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black45,
@@ -108,7 +108,7 @@ class _WardenDashboardState extends State<WardenDashboard> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: isSelected
             ? BoxDecoration(
-                color: AppColors.secondaryAccent.withOpacity(0.1),
+                color: AppColors.secondaryAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               )
             : null,
@@ -136,8 +136,9 @@ class WardenHomeView extends StatelessWidget {
           .where('hostel', isEqualTo: hostelName)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final docs = snapshot.data!.docs;
         int pending = docs.where((doc) => doc['status'] == 'Pending').length;
         int assigned = docs.where((doc) => doc['status'] == 'Assigned').length;
@@ -230,16 +231,18 @@ class StudentApprovalView extends StatelessWidget {
           .where('status', isEqualTo: 'pending')
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final docs = snapshot.data!.docs;
-        if (docs.isEmpty)
+        if (docs.isEmpty) {
           return const Center(
             child: Text(
               "All Scanned Data Verified",
               style: TextStyle(color: AppColors.textSecondary),
             ),
           );
+        }
 
         return ListView.builder(
           padding: const EdgeInsets.all(24),
@@ -300,14 +303,18 @@ class StudentApprovalView extends StatelessWidget {
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'status': 'approved',
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Access Authorized ✅")));
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Access Authorized ✅")));
+      }
     } else {
       await FirebaseFirestore.instance.collection('users').doc(uid).delete();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Access Denied ❌")));
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Access Denied ❌")));
+      }
     }
   }
 }
@@ -326,8 +333,9 @@ class WardenStudentListView extends StatelessWidget {
           .where('status', isEqualTo: 'approved')
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final docs = snapshot.data!.docs;
         return ListView.builder(
           padding: const EdgeInsets.all(24),
@@ -356,7 +364,7 @@ class WardenStudentListView extends StatelessWidget {
                   ),
                   trailing: Icon(
                     Icons.contact_phone_rounded,
-                    color: AppColors.primaryAccent.withOpacity(0.5),
+                    color: AppColors.primaryAccent.withValues(alpha: 0.5),
                     size: 18,
                   ),
                 ),
@@ -381,8 +389,9 @@ class WardenComplaintsView extends StatelessWidget {
           .where('hostel', isEqualTo: hostelName)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final docs = snapshot.data!.docs;
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
@@ -471,17 +480,25 @@ class WardenComplaintsView extends StatelessWidget {
 
   Widget _buildStatusTag(String status) {
     Color color = Colors.orangeAccent;
-    if (status == 'Assigned') color = AppColors.primaryAccent;
-    if (status == 'In Progress') color = Colors.purpleAccent;
-    if (status == 'Completed') color = Colors.greenAccent;
-    if (status == 'Closed') color = Colors.blueGrey;
+    if (status == 'Assigned') {
+      color = AppColors.primaryAccent;
+    }
+    if (status == 'In Progress') {
+      color = Colors.purpleAccent;
+    }
+    if (status == 'Completed') {
+      color = Colors.greenAccent;
+    }
+    if (status == 'Closed') {
+      color = Colors.blueGrey;
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         status.toUpperCase(),
@@ -514,8 +531,9 @@ class WardenComplaintsView extends StatelessWidget {
                 .where('status', isEqualTo: 'approved')
                 .snapshots(),
             builder: (context, snapshot) {
-              if (!snapshot.hasData)
+              if (!snapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
+              }
               final docs = snapshot.data!.docs;
               return ListView.builder(
                 itemCount: docs.length,
@@ -542,7 +560,38 @@ class WardenComplaintsView extends StatelessWidget {
                             'status': 'Assigned',
                             'assignedContractorId': docs[index].id,
                           });
-                      Navigator.pop(ctx);
+
+                      // Notify Student via Firestore Relay
+                      final compSnap = await FirebaseFirestore.instance
+                          .collection('complaints')
+                          .doc(complaintId)
+                          .get();
+
+                      if (compSnap.exists) {
+                        final compData =
+                            compSnap.data() as Map<String, dynamic>;
+                        final studentId =
+                            compData['uid'] ?? compData['studentId'];
+                        final title = compData['title'] ?? 'Complaint';
+
+                        if (studentId != null) {
+                          await FirebaseFirestore.instance
+                              .collection('notifications')
+                              .add({
+                                'recipientId': studentId,
+                                'title': 'Task Assigned 🛠️',
+                                'body':
+                                    'Service request "$title" has been assigned to ${c['name']}.',
+                                'createdAt': FieldValue.serverTimestamp(),
+                                'read': false,
+                                'type': 'assignment',
+                              });
+                        }
+                      }
+
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx);
+                      }
                     },
                   );
                 },
@@ -562,8 +611,10 @@ class WardenComplaintsView extends StatelessWidget {
       title: "Task Resolved",
       body: "Resolution update for ticket #$id has been finalized.",
     );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Archive Finalized ✅")));
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Archive Finalized ✅")));
+    }
   }
 }

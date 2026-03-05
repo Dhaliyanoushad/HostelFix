@@ -52,8 +52,9 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
                     .where('status', isEqualTo: selectedStatus)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData)
+                  if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
+                  }
                   final complaints = snapshot.data!.docs;
 
                   if (complaints.isEmpty) {
@@ -193,7 +194,7 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? AppColors.primaryAccent.withOpacity(0.2)
+                        ? AppColors.primaryAccent.withValues(alpha: 0.2)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -230,8 +231,10 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
         body: "The contractor has finished working on your complaint.",
       );
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Sector Registry Updated: $newStatus")),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Sector Registry Updated: $newStatus")),
+      );
+    }
   }
 }

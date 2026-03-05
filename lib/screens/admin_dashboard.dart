@@ -89,16 +89,18 @@ class _ComplaintsViewState extends State<ComplaintsView> {
           child: StreamBuilder<QuerySnapshot>(
             stream: _getComplaintsStream(),
             builder: (context, snapshot) {
-              if (!snapshot.hasData)
+              if (!snapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
+              }
               final docs = snapshot.data!.docs;
-              if (docs.isEmpty)
+              if (docs.isEmpty) {
                 return const Center(
                   child: Text(
                     "Empty Archives",
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
                 );
+              }
 
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -127,10 +129,12 @@ class _ComplaintsViewState extends State<ComplaintsView> {
               label: Text(status),
               selected: isSelected,
               onSelected: (val) {
-                if (val) setState(() => selectedStatus = status);
+                if (val) {
+                  setState(() => selectedStatus = status);
+                }
               },
               backgroundColor: AppColors.textFieldBg,
-              selectedColor: AppColors.primaryAccent.withOpacity(0.2),
+              selectedColor: AppColors.primaryAccent.withValues(alpha: 0.2),
               labelStyle: TextStyle(
                 color: isSelected
                     ? AppColors.primaryAccent
@@ -149,8 +153,9 @@ class _ComplaintsViewState extends State<ComplaintsView> {
 
   Stream<QuerySnapshot> _getComplaintsStream() {
     Query query = FirebaseFirestore.instance.collection('complaints');
-    if (selectedStatus != 'All')
+    if (selectedStatus != 'All') {
       query = query.where('status', isEqualTo: selectedStatus);
+    }
     return query.snapshots();
   }
 
@@ -168,7 +173,7 @@ class _ComplaintsViewState extends State<ComplaintsView> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: (isHigh ? Colors.redAccent : AppColors.primaryAccent)
-                  .withOpacity(0.1),
+                  .withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -215,16 +220,18 @@ class ContractorApprovalView extends StatelessWidget {
           .where('status', isEqualTo: 'pending')
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final docs = snapshot.data!.docs;
-        if (docs.isEmpty)
+        if (docs.isEmpty) {
           return const Center(
             child: Text(
               "No Pending Clearances",
               style: TextStyle(color: AppColors.textSecondary),
             ),
           );
+        }
 
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 100, 16, 16),
@@ -269,8 +276,9 @@ class ContractorApprovalView extends StatelessWidget {
                         const SizedBox(width: 8),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryAccent
-                                .withOpacity(0.2),
+                            backgroundColor: AppColors.primaryAccent.withValues(
+                              alpha: 0.2,
+                            ),
                             foregroundColor: AppColors.primaryAccent,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -300,14 +308,18 @@ class ContractorApprovalView extends StatelessWidget {
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'status': 'approved',
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Access Granted ✅")));
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Access Granted ✅")));
+      }
     } else {
       await FirebaseFirestore.instance.collection('users').doc(uid).delete();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Access Revoked ❌")));
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Access Revoked ❌")));
+      }
     }
   }
 }
@@ -324,16 +336,18 @@ class ContractorListView extends StatelessWidget {
           .where('status', isEqualTo: 'approved')
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final docs = snapshot.data!.docs;
-        if (docs.isEmpty)
+        if (docs.isEmpty) {
           return const Center(
             child: Text(
               "Zero Contractors Active",
               style: TextStyle(color: AppColors.textSecondary),
             ),
           );
+        }
 
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 100, 16, 16),
@@ -424,8 +438,9 @@ class HostelsView extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('users').snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final allUsers = snapshot.data!.docs;
         final wardens = allUsers
             .where(
@@ -554,8 +569,9 @@ class _StudentListPageState extends State<StudentListPage> {
                     .where('hostel', isEqualTo: widget.hostelName)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData)
+                  if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
+                  }
                   final students = snapshot.data!.docs.where((s) {
                     final name = (s.data() as Map<String, dynamic>)['name']
                         .toString()

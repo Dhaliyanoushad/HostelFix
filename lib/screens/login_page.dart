@@ -83,6 +83,7 @@ class _LoginPageState extends State<LoginPage> {
           }
         }
 
+        if (!mounted) return;
         Provider.of<UserProvider>(context, listen: false).setUser(userData);
 
         String role = userData['role'];
@@ -115,9 +116,11 @@ class _LoginPageState extends State<LoginPage> {
         throw 'Account not found.';
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       setState(() => loading = false);
     }
@@ -163,7 +166,9 @@ class _LoginPageState extends State<LoginPage> {
                         color: AppColors.textPrimary,
                         shadows: [
                           Shadow(
-                            color: AppColors.primaryAccent.withOpacity(0.3),
+                            color: AppColors.primaryAccent.withValues(
+                              alpha: 0.3,
+                            ),
                             blurRadius: 8,
                           ),
                         ],

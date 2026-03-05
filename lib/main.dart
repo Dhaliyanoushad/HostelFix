@@ -63,7 +63,6 @@ class HostelFixApp extends StatelessWidget {
           primary: AppColors.primaryAccent,
           secondary: AppColors.secondaryAccent,
           surface: AppColors.cardBg,
-          background: AppColors.background,
         ),
       ),
       initialRoute: '/',

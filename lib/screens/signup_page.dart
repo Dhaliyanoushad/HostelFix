@@ -70,6 +70,7 @@ class _SignupPageState extends State<SignupPage> {
       );
 
       if (userData != null) {
+        if (!mounted) return;
         Provider.of<UserProvider>(context, listen: false).setUser(userData);
 
         if (selectedRole == 'Admin') {
@@ -99,9 +100,11 @@ class _SignupPageState extends State<SignupPage> {
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       setState(() => loading = false);
     }
@@ -137,7 +140,9 @@ class _SignupPageState extends State<SignupPage> {
                         color: AppColors.textPrimary,
                         shadows: [
                           Shadow(
-                            color: AppColors.primaryAccent.withOpacity(0.3),
+                            color: AppColors.primaryAccent.withValues(
+                              alpha: 0.3,
+                            ),
                             blurRadius: 8,
                           ),
                         ],
@@ -257,7 +262,7 @@ class _SignupPageState extends State<SignupPage> {
     required Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       dropdownColor: AppColors.cardBg,
       style: const TextStyle(color: Colors.white),
       items: items
@@ -276,7 +281,7 @@ class _SignupPageState extends State<SignupPage> {
         fillColor: AppColors.textFieldBg,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),

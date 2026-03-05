@@ -7,7 +7,8 @@ import '../widgets/custom_widgets.dart';
 import '../theme/app_theme.dart';
 
 class MyComplaintsPage extends StatelessWidget {
-  const MyComplaintsPage({super.key});
+  final String? initialFilter;
+  const MyComplaintsPage({super.key, this.initialFilter});
 
   @override
   Widget build(BuildContext context) {
@@ -25,15 +26,22 @@ class MyComplaintsPage extends StatelessWidget {
                 ),
               )
             : StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('complaints')
-                    .where(
-                      Filter.or(
-                        Filter('studentId', isEqualTo: userData['uid']),
-                        Filter('uid', isEqualTo: userData['uid']),
-                      ),
-                    )
-                    .snapshots(),
+                stream: () {
+                  Query query = FirebaseFirestore.instance
+                      .collection('complaints')
+                      .where(
+                        Filter.or(
+                          Filter('studentId', isEqualTo: userData['uid']),
+                          Filter('uid', isEqualTo: userData['uid']),
+                        ),
+                      );
+
+                  if (initialFilter != null) {
+                    query = query.where('status', isEqualTo: initialFilter);
+                  }
+
+                  return query.snapshots();
+                }(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return Center(
@@ -188,7 +196,7 @@ class ComplaintCardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -233,9 +241,9 @@ class _StatusTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         status.toUpperCase(),

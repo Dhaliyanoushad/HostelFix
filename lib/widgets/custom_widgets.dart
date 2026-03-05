@@ -39,11 +39,11 @@ class GlassCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: showGlow
             ? [
                 BoxShadow(
-                  color: Colors.blue.withOpacity(0.2),
+                  color: Colors.blue.withValues(alpha: 0.2),
                   blurRadius: 20,
                   spreadRadius: 1,
                 ),
@@ -78,12 +78,12 @@ class NeonButton extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         gradient: onPressed != null ? AppColors.mainGradient : null,
-        color: onPressed == null ? Colors.grey.withOpacity(0.3) : null,
+        color: onPressed == null ? Colors.grey.withValues(alpha: 0.3) : null,
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           if (onPressed != null)
             BoxShadow(
-              color: AppColors.primaryAccent.withOpacity(0.4),
+              color: AppColors.primaryAccent.withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -157,7 +157,7 @@ class CustomTextField extends StatelessWidget {
         fillColor: AppColors.textFieldBg,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),

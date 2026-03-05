@@ -78,9 +78,9 @@ class _LandingPageState extends State<LandingPage> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withOpacity(0.8),
-                Colors.black.withOpacity(0.3),
-                Colors.black.withOpacity(0.9),
+                Colors.black.withValues(alpha: 0.8),
+                Colors.black.withValues(alpha: 0.3),
+                Colors.black.withValues(alpha: 0.9),
               ],
             ),
           ),
@@ -96,7 +96,7 @@ class _LandingPageState extends State<LandingPage> {
                 Text(
                   "HOSTELFIX",
                   style: GoogleFonts.outfit(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 4,
@@ -118,7 +118,7 @@ class _LandingPageState extends State<LandingPage> {
                   data.description,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.outfit(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 16,
                     height: 1.5,
                   ),

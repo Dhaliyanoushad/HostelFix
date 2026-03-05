@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hostel_fix/services/notification_service.dart';
 import '../providers/user_provider.dart';
 import '../widgets/custom_widgets.dart';
 import '../theme/app_theme.dart';
+import 'my_complaints_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -14,6 +18,47 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0;
+  StreamSubscription<QuerySnapshot>? _notificationSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupNotificationListener();
+  }
+
+  void _setupNotificationListener() {
+    // We use a small delay to ensure UserProvider is fully initialized if needed
+    Future.microtask(() {
+      if (!mounted) return;
+      final user = Provider.of<UserProvider>(context, listen: false).userData;
+      if (user != null) {
+        _notificationSubscription = FirebaseFirestore.instance
+            .collection('notifications')
+            .where('recipientId', isEqualTo: user['uid'])
+            .where('read', isEqualTo: false)
+            .snapshots()
+            .listen((snapshot) {
+              for (var change in snapshot.docChanges) {
+                if (change.type == DocumentChangeType.added) {
+                  final data = change.doc.data() as Map<String, dynamic>;
+                  NotificationService.showNotification(
+                    title: data['title'] ?? 'Notice',
+                    body: data['body'] ?? '',
+                  );
+                  // Mark as read after showing
+                  change.doc.reference.update({'read': true});
+                }
+              }
+            });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,11 +128,25 @@ class _DashboardPageState extends State<DashboardPage> {
                   title: "In Progress",
                   icon: Icons.build_circle_rounded,
                   color: Colors.orangeAccent,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const MyComplaintsPage(initialFilter: 'In Progress'),
+                    ),
+                  ),
                 ),
                 _dashboardCard(
                   title: "Completed",
                   icon: Icons.check_circle_rounded,
                   color: Colors.greenAccent,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const MyComplaintsPage(initialFilter: 'Resolved'),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -131,7 +190,7 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.redAccent.withOpacity(0.1),
+              color: Colors.redAccent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.logout_rounded, color: Colors.redAccent),
@@ -157,7 +216,7 @@ class _DashboardPageState extends State<DashboardPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 32, color: color),
@@ -183,12 +242,12 @@ class _DashboardPageState extends State<DashboardPage> {
       margin: const EdgeInsets.fromLTRB(24, 0, 24, 32),
       height: 70,
       decoration: BoxDecoration(
-        color: AppColors.cardBg.withOpacity(0.95),
+        color: AppColors.cardBg.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(35),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -213,7 +272,7 @@ class _DashboardPageState extends State<DashboardPage> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: isSelected
             ? BoxDecoration(
-                color: AppColors.primaryAccent.withOpacity(0.1),
+                color: AppColors.primaryAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               )
             : null,
@@ -224,7 +283,7 @@ class _DashboardPageState extends State<DashboardPage> {
           shadows: isSelected
               ? [
                   Shadow(
-                    color: AppColors.primaryAccent.withOpacity(0.5),
+                    color: AppColors.primaryAccent.withValues(alpha: 0.5),
                     blurRadius: 10,
                   ),
                 ]
