@@ -19,26 +19,46 @@ class NotificationService {
     await _notifications.initialize(settings);
   }
 
+  static Future<void> showNotification({
+    required String title,
+    required String body,
+    String? channelId,
+    String? channelName,
+    Color? color,
+  }) async {
+    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      channelId ?? 'general_notifications',
+      channelName ?? 'General Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+      color: color ?? const Color(0xFF2563EB),
+      playSound: true,
+      enableVibration: true,
+    );
+
+    NotificationDetails details = NotificationDetails(
+      android: androidDetails,
+      iOS: const DarwinNotificationDetails(),
+    );
+
+    await _notifications.show(
+      DateTime.now().millisecond, // Unique ID
+      title,
+      body,
+      details,
+    );
+  }
+
   static Future<void> showEmergencyNotification({
     required String title,
     required String body,
   }) async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-          'emergency_channel',
-          'Emergency Complaints',
-          importance: Importance.max,
-          priority: Priority.high,
-          color: Color(0xFFFF0000),
-          playSound: true,
-          enableVibration: true,
-        );
-
-    const NotificationDetails details = NotificationDetails(
-      android: androidDetails,
-      iOS: DarwinNotificationDetails(),
+    await showNotification(
+      title: title,
+      body: body,
+      channelId: 'emergency_channel',
+      channelName: 'Emergency Complaints',
+      color: const Color(0xFFFF0000),
     );
-
-    await _notifications.show(0, title, body, details);
   }
 }

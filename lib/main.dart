@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/user_provider.dart';
+import 'providers/theme_provider.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 
@@ -18,6 +19,8 @@ import 'screens/my_complaints_page.dart';
 import 'screens/admin_dashboard.dart';
 import 'screens/warden_dashboard.dart';
 import 'screens/contractor_dashboard.dart';
+import 'screens/profile_settings_page.dart';
+import 'screens/help_support_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +28,10 @@ Future<void> main() async {
   await NotificationService.init();
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => UserProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
       child: const HostelFixApp(),
     ),
   );
@@ -36,10 +42,14 @@ class HostelFixApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'HostelFix',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: themeProvider.lightTheme,
+      darkTheme: themeProvider.darkTheme,
+      themeMode: themeProvider.themeMode,
       initialRoute: '/',
       builder: (context, child) {
         return _AuthWrapper(child: child!);
@@ -56,6 +66,8 @@ class HostelFixApp extends StatelessWidget {
         '/contractor-dashboard': (context) => const ContractorDashboard(),
         '/report-issue': (context) => const ReportIssuePage(),
         '/my-complaints': (context) => const MyComplaintsPage(),
+        '/profile-settings': (context) => const ProfileSettingsPage(),
+        '/help-support': (context) => const HelpSupportPage(),
       },
     );
   }
@@ -79,15 +91,24 @@ class _AuthWrapperState extends State<_AuthWrapper> {
   }
 
   Future<void> _checkAuth() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final userData = await AuthService().fetchUserData(user.uid);
-      if (userData != null && mounted) {
-        Provider.of<UserProvider>(context, listen: false).setUser(userData);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userData = await AuthService().fetchUserData(user.uid);
+        if (userData != null && mounted) {
+          Provider.of<UserProvider>(context, listen: false).setUser(userData);
+        }
       }
-    }
-    if (mounted) {
-      setState(() => _initialized = true);
+    } catch (e) {
+      // If profile is missing (deleted), log out
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        Provider.of<UserProvider>(context, listen: false).clearUser();
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _initialized = true);
+      }
     }
   }
 

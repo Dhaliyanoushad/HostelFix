@@ -11,11 +11,15 @@ class AuthService {
     required String email,
     String? studentId,
     String? hostel,
+    String? room,
+    String? hostelCode,
     required String password,
     required String role,
     String? gender,
     String? phone,
     String? specialization,
+    String? experience,
+    String? profilePhoto,
   }) async {
     try {
       // 1️⃣ Create Firebase Auth user
@@ -30,22 +34,26 @@ class AuthService {
         'email': email,
         'studentId': studentId,
         'hostel': hostel,
+        'room': room,
+        'hostelCode': hostelCode,
         'role': role,
         'gender': gender,
         'phone': phone,
         'specialization': specialization,
+        'experience': experience,
+        'profilePhoto': profilePhoto,
+        'approved': (role == 'Contractor' || role == 'Student') ? false : true,
         'createdAt': FieldValue.serverTimestamp(),
       };
 
       // 2️⃣ Save extra data in Firestore
-      // Use studentId as doc ID if available (for backward compatibility), otherwise use UID
       String docId = (studentId != null && studentId.isNotEmpty)
           ? studentId
           : cred.user!.uid;
 
       await _db.collection('users').doc(docId).set(userData);
 
-      // 3️⃣ Create public lookup entry for Students (to allow login by ID without public user-profile reads)
+      // 3️⃣ Create public lookup entry for Students
       if (role == 'Student' && studentId != null && studentId.isNotEmpty) {
         await _db.collection('public_lookups').doc(studentId).set({
           'email': email,
@@ -124,9 +132,9 @@ class AuthService {
       if (snap.docs.isNotEmpty) {
         return snap.docs.first.data() as Map<String, dynamic>?;
       }
-      return null;
+      throw 'User profile not found. Your account may have been deleted.';
     } catch (e) {
-      return null;
+      rethrow;
     }
   }
 
@@ -168,6 +176,28 @@ class AuthService {
       return snap.docs.first.data() as Map<String, dynamic>?;
     } on FirebaseAuthException catch (e) {
       throw e.message ?? 'Login failed';
+    } catch (e) {
+      throw e.toString();
+    }
+  }
+
+  /// UPDATE USER PROFILE
+  Future<void> updateUserProfile({
+    required String uid,
+    required Map<String, dynamic> updateData,
+  }) async {
+    try {
+      QuerySnapshot snap = await _db
+          .collection('users')
+          .where('uid', isEqualTo: uid)
+          .limit(1)
+          .get();
+      
+      if (snap.docs.isNotEmpty) {
+        await _db.collection('users').doc(snap.docs.first.id).update(updateData);
+      } else {
+        throw 'User document not found';
+      }
     } catch (e) {
       throw e.toString();
     }
