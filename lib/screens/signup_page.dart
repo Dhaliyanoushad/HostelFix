@@ -4,9 +4,6 @@ import '../providers/user_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/auth_service.dart';
 import '../widgets/glass_container.dart';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 class SignupPage extends StatefulWidget {
   final String? role;
@@ -29,67 +26,8 @@ class _SignupPageState extends State<SignupPage> {
   String gender = 'Boy';
   String specialization = 'Electrician';
   String experience = '';
-  String profilePhoto = '';
   String hostelCode = '';
   String password = '';
-  File? _profileImage;
-  final ImagePicker _picker = ImagePicker();
-
-  Future<void> _pickProfileImage(ImageSource source) async {
-    final XFile? image = await _picker.pickImage(source: source, imageQuality: 40);
-    if (image != null) {
-      setState(() => _profileImage = File(image.path));
-    }
-  }
-
-  void _showImagePicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => GlassContainer(
-        margin: const EdgeInsets.all(24),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Select Profile Photo", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _pickerOption(Icons.camera_alt_rounded, "Camera", () {
-                  Navigator.pop(context);
-                  _pickProfileImage(ImageSource.camera);
-                }),
-                _pickerOption(Icons.photo_library_rounded, "Gallery", () {
-                  Navigator.pop(context);
-                  _pickProfileImage(ImageSource.gallery);
-                }),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _pickerOption(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: Theme.of(context).primaryColor, size: 30),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-
   final List<String> specializations = [
     'Electrician',
     'Plumber',
@@ -108,36 +46,34 @@ class _SignupPageState extends State<SignupPage> {
   };
   final Map<String, String> wardenGenders = {'Male': 'Boy', 'Female': 'Girl'};
 
+
+  String? profilePhotoUrl;
+  
   void signup() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => loading = true);
 
     try {
       String selectedRole = widget.role ?? 'Student';
-      String? photoUrl;
 
-      if (_profileImage != null) {
-        final ref = FirebaseStorage.instance
-            .ref()
-            .child('profile_photos')
-            .child('${DateTime.now().millisecondsSinceEpoch}_$email.jpg');
-        await ref.putFile(_profileImage!);
-        photoUrl = await ref.getDownloadURL();
-      }
+      // Sanitise inputs
+      final cleanEmail = email.trim();
+      final cleanName = name.trim();
+      final cleanPassword = password.trim();
 
       Map<String, dynamic>? userData = await _auth.signUp(
-        name: name,
-        email: email,
-        studentId: selectedRole == 'Student' ? studentId : null,
+        name: cleanName,
+        email: cleanEmail,
+        studentId: selectedRole == 'Student' ? studentId.trim() : null,
         hostel: (selectedRole == 'Student' || selectedRole == 'Warden') ? hostel : null,
-        room: selectedRole == 'Student' ? room : null,
-        hostelCode: selectedRole == 'Warden' ? hostelCode : null,
+        room: selectedRole == 'Student' ? room.trim() : null,
+        hostelCode: selectedRole == 'Warden' ? hostelCode.trim() : null,
         gender: (selectedRole == 'Student' || selectedRole == 'Warden') ? gender : null,
-        phone: (selectedRole == 'Contractor' || selectedRole == 'Warden' || selectedRole == 'Student') ? phone : null,
+        phone: (selectedRole == 'Contractor' || selectedRole == 'Warden' || selectedRole == 'Student') ? phone.trim() : null,
         specialization: selectedRole == 'Contractor' ? specialization : null,
-        experience: selectedRole == 'Contractor' ? experience : null,
-        profilePhoto: photoUrl,
-        password: password,
+        experience: selectedRole == 'Contractor' ? experience.trim() : null,
+        profilePhoto: profilePhotoUrl?.trim(),
+        password: cleanPassword,
         role: selectedRole,
       );
 
@@ -189,41 +125,24 @@ class _SignupPageState extends State<SignupPage> {
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         children: [
-                          _buildField(Icons.person_rounded, 'Full Name', (v) => name = v),
-                          _buildField(Icons.email_rounded, 'Email Address', (v) => email = v, keyboardType: TextInputType.emailAddress),
+                          _buildField(icon: Icons.person_rounded, label: 'Full Name', onChanged: (v) => name = v),
+                          _buildField(icon: Icons.email_rounded, label: 'Email Address', onChanged: (v) => email = v, keyboardType: TextInputType.emailAddress),
                           
                           if (selectedRole == 'Student') ...[
-                            _buildField(Icons.badge_rounded, 'Student ID', (v) => studentId = v),
-                            _buildField(Icons.meeting_room_rounded, 'Room Number', (v) => room = v),
-                            _buildField(Icons.phone_rounded, 'Phone Number', (v) => phone = v, keyboardType: TextInputType.phone),
+                            _buildField(icon: Icons.badge_rounded, label: 'Student ID', onChanged: (v) => studentId = v),
+                            _buildField(icon: Icons.meeting_room_rounded, label: 'Room Number', onChanged: (v) => room = v),
+                            _buildField(icon: Icons.phone_rounded, label: 'Phone Number', onChanged: (v) => phone = v, keyboardType: TextInputType.phone),
                           ],
                           
-                          const SizedBox(height: 10),
-                          const Text("Profile Photo", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
-                          const SizedBox(height: 12),
-                          GestureDetector(
-                            onTap: _showImagePicker,
-                            child: Container(
-                              height: 100,
-                              width: 100,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor.withOpacity(0.05),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.1)),
-                                image: _profileImage != null ? DecorationImage(image: FileImage(_profileImage!), fit: BoxFit.cover) : null,
-                              ),
-                              child: _profileImage == null ? Icon(Icons.add_a_photo_rounded, color: Theme.of(context).primaryColor, size: 30) : null,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
+                          _buildField(icon: Icons.link_rounded, label: 'Profile Photo URL (Optional)', onChanged: (v) => profilePhotoUrl = v, validator: (v) => null),
 
                           if (selectedRole == 'Warden') ...[
-                            _buildField(Icons.phone_rounded, 'Phone Number', (v) => phone = v, keyboardType: TextInputType.phone),
-                            _buildField(Icons.qr_code_rounded, 'Hostel Code', (v) => hostelCode = v),
+                            _buildField(icon: Icons.phone_rounded, label: 'Phone Number', onChanged: (v) => phone = v, keyboardType: TextInputType.phone),
+                            _buildField(icon: Icons.qr_code_rounded, label: 'Hostel Code', onChanged: (v) => hostelCode = v),
                           ],
 
                           if (selectedRole == 'Contractor') ...[
-                            _buildField(Icons.phone_rounded, 'Phone Number', (v) => phone = v, keyboardType: TextInputType.phone),
+                            _buildField(icon: Icons.phone_rounded, label: 'Phone Number', onChanged: (v) => phone = v, keyboardType: TextInputType.phone),
                             _buildDropdownField(
                               Icons.engineering_rounded, 
                               'Specialization', 
@@ -231,7 +150,7 @@ class _SignupPageState extends State<SignupPage> {
                               specializations,
                               (v) => setState(() => specialization = v!)
                             ),
-                            _buildField(Icons.history_rounded, 'Experience (Years)', (v) => experience = v, keyboardType: TextInputType.number),
+                            _buildField(icon: Icons.history_rounded, label: 'Experience (Years)', onChanged: (v) => experience = v, keyboardType: TextInputType.number),
                           ],
 
                           if (selectedRole == 'Student' || selectedRole == 'Warden') ...[
@@ -308,7 +227,13 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  Widget _buildField(IconData icon, String label, Function(String) onChanged, {TextInputType? keyboardType}) {
+  Widget _buildField({
+    required IconData icon,
+    required String label,
+    required Function(String) onChanged,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: TextFormField(
@@ -322,7 +247,7 @@ class _SignupPageState extends State<SignupPage> {
           filled: true,
           fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
         ),
-        validator: (v) => v!.isEmpty ? 'Required' : null,
+        validator: validator ?? (v) => v!.isEmpty ? 'Required' : null,
       ),
     );
   }

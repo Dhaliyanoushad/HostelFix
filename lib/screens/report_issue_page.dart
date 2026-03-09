@@ -5,9 +5,6 @@ import '../providers/theme_provider.dart';
 import '../widgets/glass_container.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hostel_fix/services/notification_service.dart';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 class ReportIssuePage extends StatefulWidget {
   const ReportIssuePage({super.key});
@@ -26,71 +23,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
   String category = 'Electrician';
   String priority = 'normal';
   bool isLoading = false;
-  File? _selectedImage;
-  final ImagePicker _picker = ImagePicker();
-
-  Future<void> _pickImage(ImageSource source) async {
-    final XFile? image = await _picker.pickImage(
-      source: source,
-      imageQuality: 50,
-    );
-    if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-      });
-    }
-  }
-
-  void _showImagePicker(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => GlassContainer(
-        margin: const EdgeInsets.all(24),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("Select Image Source", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _pickerOption(Icons.camera_alt_rounded, "Camera", () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                }),
-                _pickerOption(Icons.photo_library_rounded, "Gallery", () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                }),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _pickerOption(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: Theme.of(context).primaryColor, size: 30),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
+  String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +84,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
                         ),
                       ),
 
-                    _buildField(Icons.meeting_room_rounded, "Room Number", roomController),
+                    _buildField(icon: Icons.meeting_room_rounded, label: "Room Number", controller: roomController),
                     
                     DropdownButtonFormField<String>(
                       decoration: InputDecoration(
@@ -190,37 +123,10 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
                     ),
                     const SizedBox(height: 20),
 
-                    _buildField(Icons.title_rounded, "Short Title", titleController),
-                    _buildField(Icons.description_rounded, "Details of Issue", descriptionController, maxLines: 4),
+                    _buildField(icon: Icons.title_rounded, label: "Short Title", controller: titleController),
+                    _buildField(icon: Icons.description_rounded, label: "Details of Issue", controller: descriptionController, maxLines: 4),
+                    _buildField(icon: Icons.link_rounded, label: "Image URL (Optional)", controller: TextEditingController(text: imageUrl), onChangedCallback: (v) => imageUrl = v, validator: (v) => null),
 
-                    const SizedBox(height: 20),
-                    const Text("Attach Photo (Optional)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey)),
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: () => _showImagePicker(context),
-                      child: Container(
-                        width: double.infinity,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.1)),
-                        ),
-                        child: _selectedImage != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                              )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.add_a_photo_rounded, size: 40, color: Theme.of(context).primaryColor.withOpacity(0.5)),
-                                  const SizedBox(height: 8),
-                                  Text("Click to upload JPG/JPEG", style: TextStyle(color: Theme.of(context).primaryColor.withOpacity(0.5), fontSize: 13)),
-                                ],
-                              ),
-                      ),
-                    ),
 
                     const SizedBox(height: 32),
 
@@ -250,12 +156,20 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
     );
   }
 
-  Widget _buildField(IconData icon, String label, TextEditingController controller, {int maxLines = 1}) {
+  Widget _buildField({
+    required IconData icon,
+    required String label,
+    required TextEditingController controller,
+    int maxLines = 1,
+    Function(String)? onChangedCallback,
+    String? Function(String?)? validator,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
+        onChanged: onChangedCallback,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, size: 20),
@@ -263,7 +177,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
           filled: true,
           fillColor: Theme.of(context).colorScheme.surface.withOpacity(0.5),
         ),
-        validator: (value) => value == null || value.isEmpty ? 'Required field' : null,
+        validator: validator ?? (value) => value == null || value.isEmpty ? 'Required field' : null,
       ),
     );
   }
@@ -278,17 +192,6 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
     setState(() => isLoading = true);
 
     try {
-      String? imageUrl;
-      if (_selectedImage != null) {
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child('complaint_images')
-            .child('${userData['uid']}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-        
-        await storageRef.putFile(_selectedImage!);
-        imageUrl = await storageRef.getDownloadURL();
-      }
-
       await FirebaseFirestore.instance.collection('complaints').add({
         'uid': userData['uid'],
         'name': userData['name'],
@@ -304,7 +207,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
         'issueDescription': descriptionController.text.trim(),
-        'imageUrl': imageUrl,
+        'imageUrl': imageUrl?.trim(),
         'status': 'Pending',
         'createdAt': FieldValue.serverTimestamp(),
       });

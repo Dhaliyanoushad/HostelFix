@@ -85,6 +85,22 @@ class WardenOverview extends StatelessWidget {
             'Completed': docs.where((d) => d['status'] == 'Completed').length,
           };
 
+          // Analysis Calculations
+          Map<String, int> categoryCounts = {};
+          Map<String, int> roomCounts = {};
+          for (var doc in docs) {
+            String cat = doc['category'] ?? 'Other';
+            categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
+            
+            String room = doc['room'] ?? 'Unknown';
+            roomCounts[room] = (roomCounts[room] ?? 0) + 1;
+          }
+
+          var sortedCategories = categoryCounts.entries.toList()
+            ..sort((a, b) => b.value.compareTo(a.value));
+          var sortedRooms = roomCounts.entries.toList()
+            ..sort((a, b) => b.value.compareTo(a.value));
+
           return ListView(
             padding: const EdgeInsets.all(24),
             children: [
@@ -98,19 +114,87 @@ class WardenOverview extends StatelessWidget {
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
               ),
               const SizedBox(height: 24),
+              // --- STAT CARDS ---
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: 2,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
+                childAspectRatio: 1.5,
                 children: [
-                  _buildStatCard(context, "Total", stats['Total']!, Colors.grey),
                   _buildStatCard(context, "Pending", stats['Pending']!, Colors.orange),
-                  _buildStatCard(context, "Assigned", stats['Assigned']!, Colors.blue),
-                  _buildStatCard(context, "In Progress", stats['In Progress']!, Colors.purple),
                   _buildStatCard(context, "Completed", stats['Completed']!, Colors.green),
                 ],
+              ),
+              const SizedBox(height: 32),
+
+              // --- ANALYSIS SECTION ---
+              Text("Maintenance Analysis", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: GlassContainer(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Top Categories", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                          const SizedBox(height: 12),
+                          ...sortedCategories.take(3).map((e) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(e.key, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                Text("${e.value}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              ],
+                            ),
+                          )),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: GlassContainer(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Critical Rooms", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                          const SizedBox(height: 12),
+                          ...sortedRooms.take(3).map((e) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text("Room ${e.key}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                Text("${e.value}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              ],
+                            ),
+                          )),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Resolution Rate
+              GlassContainer(
+                child: ListTile(
+                  leading: const CircleAvatar(backgroundColor: Colors.blueAccent, child: Icon(Icons.analytics_rounded, color: Colors.white)),
+                  title: const Text("Resolution Efficiency", style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text("Overall hostel health score"),
+                  trailing: Text(
+                    "${stats['Total'] == 0 ? 0 : ((stats['Completed']! / stats['Total']!) * 100).toStringAsFixed(1)}%",
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Theme.of(context).primaryColor),
+                  ),
+                ),
               ),
             ],
           );
@@ -131,9 +215,9 @@ class WardenOverview extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text("$count", style: TextStyle(color: color, fontSize: 32, fontWeight: FontWeight.w900)),
+          Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text("$count", style: TextStyle(color: color, fontSize: 28, fontWeight: FontWeight.w900)),
         ],
       ),
     );
