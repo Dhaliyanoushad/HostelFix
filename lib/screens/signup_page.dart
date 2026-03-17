@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
@@ -71,43 +72,100 @@ class _SignupPageState extends State<SignupPage> {
 
       if (userData != null) {
         if (!mounted) return;
-        Provider.of<UserProvider>(context, listen: false).setUser(userData);
 
-        if (selectedRole == 'Admin') {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/admin-dashboard',
-            (r) => false,
-          );
-        } else if (selectedRole == 'Warden') {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/warden-dashboard',
-            (r) => false,
-          );
-        } else if (selectedRole == 'Contractor') {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/contractor-dashboard',
-            (r) => false,
-          );
+        // For Students and Contractors, show approval message and redirect to Login
+        if (selectedRole == 'Student' || selectedRole == 'Contractor') {
+          _showApprovalDialog(selectedRole);
         } else {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/dashboard',
-            (r) => false,
-          );
+          // For Admin/Warden (if approved immediately), go to their dashboard
+          Provider.of<UserProvider>(context, listen: false).setUser(userData);
+          if (selectedRole == 'Admin') {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/admin-dashboard',
+              (r) => false,
+            );
+          } else {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/warden-dashboard',
+              (r) => false,
+            );
+          }
         }
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        String errorMsg = "Signup failed. Please try again.";
+        if (e.code == 'email-already-in-use') {
+          errorMsg = "This email is already registered. Please login instead.";
+        } else if (e.code == 'invalid-email') {
+          errorMsg = "The email address is not valid.";
+        } else if (e.code == 'weak-password') {
+          errorMsg = "The password is too weak.";
+        } else if (e.message != null) {
+          errorMsg = e.message!;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
+  }
+
+  void _showApprovalDialog(String role) {
+    String approver = role == 'Student' ? 'Warden' : 'Admin';
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.timer_rounded, color: AppColors.primaryAccent),
+            SizedBox(width: 10),
+            Text("Registration Success", style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          "Your $role account has been created successfully!\n\nPlease wait for the $approver to approve your request before you can login.",
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+            child: const Text(
+              "OK",
+              style: TextStyle(
+                color: AppColors.primaryAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
