@@ -20,6 +20,8 @@ class AuthService {
     String? specialization,
     String? experience,
     String? profilePhoto,
+    String? verificationImageUrl,
+    String? verificationType,
   }) async {
     try {
       // 1️⃣ Create Firebase Auth user
@@ -42,7 +44,9 @@ class AuthService {
         'specialization': specialization,
         'experience': experience,
         'profilePhoto': profilePhoto,
-        'approved': (role == 'Contractor' || role == 'Student') ? false : true,
+        'verificationImageUrl': verificationImageUrl,
+        'verificationType': verificationType,
+        'approved': (role == 'Contractor' || role == 'Student' || role == 'Warden') ? false : true,
         'createdAt': FieldValue.serverTimestamp(),
       };
 

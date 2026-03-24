@@ -291,6 +291,50 @@ class StudentVerificationView extends StatelessWidget {
                     const Divider(height: 32, thickness: 0.5),
                     Text("Room: ${data['room'] ?? 'N/A'}", style: const TextStyle(fontWeight: FontWeight.w500)),
                     Text("Phone: ${data['phone'] ?? 'N/A'}", style: const TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 16),
+                    if (data['verificationImageUrl'] != null && data['verificationImageUrl'].toString().isNotEmpty) ...[
+                      const Text("VERIFICATION DOCUMENT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.1)),
+                      const SizedBox(height: 8),
+                      Text("Type: ${data['verificationType'] ?? 'ID Card'}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: () => _showFullImage(context, data['verificationImageUrl'], data['verificationType'] ?? 'ID Card'),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Image.network(
+                                data['verificationImageUrl'],
+                                width: double.infinity,
+                                height: 150,
+                                fit: BoxFit.cover,
+                                errorBuilder: (c, e, s) => Container(
+                                  height: 150, 
+                                  color: Colors.grey.shade200, 
+                                  child: const Icon(Icons.broken_image_rounded, color: Colors.grey)
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.zoom_in_rounded, color: Colors.white, size: 16),
+                                    SizedBox(width: 4),
+                                    Text("VIEW FULL IMAGE", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     Row(
                       children: [
@@ -326,6 +370,47 @@ class StudentVerificationView extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+
+  void _showFullImage(BuildContext context, String url, String title) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(10),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              panEnabled: true,
+              minScale: 0.5,
+              maxScale: 4,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(child: CircularProgressIndicator(color: Colors.white));
+                  },
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: CircleAvatar(
+                backgroundColor: Colors.black54,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -21,6 +21,7 @@ import 'screens/warden_dashboard.dart';
 import 'screens/contractor_dashboard.dart';
 import 'screens/profile_settings_page.dart';
 import 'screens/help_support_page.dart';
+import 'screens/waiting_approval_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,6 +69,7 @@ class HostelFixApp extends StatelessWidget {
         '/my-complaints': (context) => const MyComplaintsPage(),
         '/profile-settings': (context) => const ProfileSettingsPage(),
         '/help-support': (context) => const HelpSupportPage(),
+        '/waiting-approval': (context) => const WaitingApprovalPage(),
       },
     );
   }

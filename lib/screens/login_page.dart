@@ -55,6 +55,11 @@ class _LoginPageState extends State<LoginPage> {
 
         Provider.of<UserProvider>(context, listen: false).setUser(userData);
 
+        if (userData['approved'] == false) {
+          Navigator.pushNamedAndRemoveUntil(context, '/waiting-approval', (r) => false);
+          return;
+        }
+
         String role = userData['role'];
         if (role == 'Admin') {
           Navigator.pushNamedAndRemoveUntil(context, '/admin-dashboard', (r) => false);
