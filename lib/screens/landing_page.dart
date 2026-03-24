@@ -49,7 +49,7 @@ class LandingPage extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(right: 16),
                   child: ElevatedButton(
-                    onPressed: () => _navigateToDashboard(context, userProvider.userData!['role']),
+                    onPressed: () => _navigateToDashboard(context, userProvider.userData!),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,
@@ -254,7 +254,13 @@ class LandingPage extends StatelessWidget {
     );
   }
 
-  void _navigateToDashboard(BuildContext context, String role) {
+  void _navigateToDashboard(BuildContext context, Map<String, dynamic> userData) {
+    if (userData['approved'] == false) {
+      Navigator.pushReplacementNamed(context, '/waiting-approval');
+      return;
+    }
+
+    String role = userData['role'];
     if (role == 'Admin') {
       Navigator.pushReplacementNamed(context, '/admin-dashboard');
     } else if (role == 'Warden') {

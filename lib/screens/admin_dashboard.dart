@@ -53,7 +53,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   indicatorSize: TabBarIndicatorSize.tab,
                   labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   tabs: const [
-                    Tab(text: "Pending", icon: Icon(Icons.pending_actions_rounded, size: 20)),
+                    Tab(text: "Approval Req.", icon: Icon(Icons.pending_actions_rounded, size: 20)),
                     Tab(text: "Contractors", icon: Icon(Icons.engineering_rounded, size: 20)),
                     Tab(text: "Hostels", icon: Icon(Icons.apartment_rounded, size: 20)),
                     Tab(text: "Students", icon: Icon(Icons.people_alt_rounded, size: 20)),
@@ -65,7 +65,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         body: const TabBarView(
           children: [
-            PendingContractorsView(),
+            PendingRequestsView(),
             ApprovedContractorsView(),
             HostelListView(),
             StudentListView(),
@@ -99,15 +99,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 }
 
-class PendingContractorsView extends StatelessWidget {
-  const PendingContractorsView({super.key});
+class PendingRequestsView extends StatelessWidget {
+  const PendingRequestsView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
-          .where('role', isEqualTo: 'Contractor')
           .where('approved', isEqualTo: false)
           .snapshots(),
       builder: (context, snapshot) {
@@ -155,12 +154,12 @@ class PendingContractorsView extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                color: (data['role'] == 'Warden' ? Colors.pink : Theme.of(context).primaryColor).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                data['specialization'] ?? 'N/A',
-                                style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12, fontWeight: FontWeight.bold),
+                                data['role'] == 'Warden' ? "WARDEN: ${data['hostel'] ?? 'N/A'}" : (data['specialization'] ?? 'N/A'),
+                                style: TextStyle(color: data['role'] == 'Warden' ? Colors.pink : Theme.of(context).primaryColor, fontSize: 10, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ],
@@ -170,13 +169,53 @@ class PendingContractorsView extends StatelessWidget {
                   ),
                   const Divider(height: 32, thickness: 0.5),
                   _infoRow(context, Icons.phone_rounded, "Phone", data['phone'] ?? 'N/A'),
-                  _infoRow(context, Icons.work_history_rounded, "Experience", "${data['experience'] ?? '0'} Years"),
+                  if (data['role'] == 'Contractor')
+                    _infoRow(context, Icons.work_history_rounded, "Experience", "${data['experience'] ?? '0'} Years"),
+                  if (data['role'] == 'Warden')
+                    _infoRow(context, Icons.qr_code_rounded, "Hostel Code", data['hostelCode'] ?? 'N/A'),
+                  const SizedBox(height: 16),
+                  if (data['verificationImageUrl'] != null && data['verificationImageUrl'].toString().isNotEmpty) ...[
+                    const Text("VERIFICATION DOCUMENT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.1)),
+                    const SizedBox(height: 8),
+                    Text("Type: ${data['verificationType'] ?? 'Aadhaar Card'}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () => _showFullImage(context, data['verificationImageUrl']),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Image.network(
+                              data['verificationImageUrl'],
+                              width: double.infinity,
+                              height: 120,
+                              fit: BoxFit.cover,
+                              errorBuilder: (c, e, s) => Container(height: 120, color: Colors.grey.shade100, child: const Icon(Icons.broken_image_rounded)),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
+                                  SizedBox(width: 4),
+                                  Text("VIEW DOCUMENT", style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => _approveContractor(doc.id, data['name'] ?? 'Contractor'),
+                          onPressed: () => _approveRequest(doc.id, data['name'] ?? 'User', data['role']),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF10B981),
                             foregroundColor: Colors.white,
@@ -190,7 +229,7 @@ class PendingContractorsView extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => _rejectContractor(doc.id, data['name'] ?? 'Contractor'),
+                          onPressed: () => _rejectRequest(doc.id, data['name'] ?? 'User', data['role']),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFFEF4444),
                             side: const BorderSide(color: Color(0xFFEF4444)),
@@ -211,19 +250,59 @@ class PendingContractorsView extends StatelessWidget {
     );
   }
 
-  void _approveContractor(String id, String name) async {
+  void _showFullImage(BuildContext context, String url) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(10),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(child: CircularProgressIndicator(color: Colors.white));
+                  },
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: CircleAvatar(
+                backgroundColor: Colors.black54,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _approveRequest(String id, String name, String role) async {
     await FirebaseFirestore.instance.collection('users').doc(id).update({'approved': true});
     await NotificationService.showNotification(
-      title: "Contractor Approved",
+      title: "$role Approved",
       body: "The profile for $name has been verified and approved.",
       color: Colors.green,
     );
   }
 
-  void _rejectContractor(String id, String name) async {
+  void _rejectRequest(String id, String name, String role) async {
     await FirebaseFirestore.instance.collection('users').doc(id).delete();
     await NotificationService.showNotification(
-      title: "Contractor Rejected",
+      title: "$role Rejected",
       body: "The registration request for $name was declined.",
       color: Colors.redAccent,
     );
