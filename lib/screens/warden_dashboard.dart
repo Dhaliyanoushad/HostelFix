@@ -340,7 +340,7 @@ class StudentVerificationView extends StatelessWidget {
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => _verifyStudent(student.id, data['name'] ?? 'Student', true),
+                            onPressed: () => _verifyStudent(student.id, data['uid'], data['name'] ?? 'Student', true),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               foregroundColor: Colors.white,
@@ -353,7 +353,7 @@ class StudentVerificationView extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () => _verifyStudent(student.id, data['name'] ?? 'Student', false),
+                            onPressed: () => _verifyStudent(student.id, data['uid'], data['name'] ?? 'Student', false),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.red,
                               side: const BorderSide(color: Colors.red),
@@ -415,19 +415,19 @@ class StudentVerificationView extends StatelessWidget {
     );
   }
 
-  void _verifyStudent(String id, String name, bool approve) async {
+  void _verifyStudent(String id, String uid, String name, bool approve) async {
     if (approve) {
       await FirebaseFirestore.instance.collection('users').doc(id).update({'approved': true});
-      await NotificationService.showNotification(
+      await NotificationService.sendNotification(
+        recipientId: uid,
         title: "Account Approved",
         body: "HostelFix account for $name has been approved by warden.",
-        color: Colors.green,
       );
     } else {
-      await NotificationService.showNotification(
+      await NotificationService.sendNotification(
+        recipientId: uid,
         title: "Account Rejected",
         body: "The registration request for $name was rejected.",
-        color: Colors.red,
       );
       await FirebaseFirestore.instance.collection('users').doc(id).delete();
     }
@@ -851,17 +851,36 @@ class _AssignContractorScreenState extends State<AssignContractorScreen> {
   }
 
   void _assign(BuildContext context, String contractorUid, String? contractorName) async {
-    await FirebaseFirestore.instance.collection('complaints').doc(widget.complaintId).update({
+    final complaintRef = FirebaseFirestore.instance.collection('complaints').doc(widget.complaintId);
+    final complaintDoc = await complaintRef.get();
+    final complaintData = complaintDoc.data() as Map<String, dynamic>?;
+
+    if (complaintData == null) return;
+
+    final studentUid = complaintData['uid'] ?? complaintData['studentId'];
+    final complaintTitle = complaintData['title'] ?? 'Complaint';
+
+    await complaintRef.update({
       'status': 'Assigned',
       'assignedTo': contractorUid,
       'assignedToName': contractorName ?? 'Staff',
     });
 
-    await NotificationService.showNotification(
+    // Notify Contractor
+    await NotificationService.sendNotification(
+      recipientId: contractorUid,
       title: "New Task Assigned",
-      body: "A new maintenance request has been assigned to $contractorName.",
-      color: Colors.blueAccent,
+      body: "A new maintenance request '$complaintTitle' has been assigned to you.",
     );
+
+    // Notify Student
+    if (studentUid != null) {
+      await NotificationService.sendNotification(
+        recipientId: studentUid,
+        title: "Complaint Assigned",
+        body: "Your complaint '$complaintTitle' has been assigned to $contractorName.",
+      );
+    }
     
     if (context.mounted) {
       Navigator.pop(context); // Close assign screen

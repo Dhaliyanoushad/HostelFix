@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/notification_service.dart';
 
 class UserProvider with ChangeNotifier {
   Map<String, dynamic>? _userData;
@@ -7,6 +8,9 @@ class UserProvider with ChangeNotifier {
 
   void setUser(Map<String, dynamic> data) {
     _userData = data;
+    if (data['uid'] != null) {
+      NotificationService.listenToNotifications(data['uid']);
+    }
     notifyListeners();
   }
 

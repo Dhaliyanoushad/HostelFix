@@ -92,6 +92,14 @@ class _LoginPageState extends State<LoginPage> {
         title: Text('$roleTitle Login'),
         elevation: 0,
         backgroundColor: Colors.transparent,
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
+            icon: const Icon(Icons.home_rounded),
+            tooltip: "Back to Home",
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Stack(
         children: [

@@ -142,6 +142,37 @@ class AuthService {
     }
   }
 
+  /// GET WARDEN FOR HOSTEL
+  Future<Map<String, dynamic>?> getWardenForHostel(String hostelName) async {
+    try {
+      QuerySnapshot snap = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'Warden')
+          .where('hostel', isEqualTo: hostelName)
+          .limit(1)
+          .get();
+      if (snap.docs.isNotEmpty) {
+        return snap.docs.first.data() as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// GET ALL ADMINS
+  Future<List<Map<String, dynamic>>> getAllAdmins() async {
+    try {
+      QuerySnapshot snap = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'Admin')
+          .get();
+      return snap.docs.map((d) => d.data() as Map<String, dynamic>).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
   /// GET ROLE
   Future<String?> getRole(String studentId) async {
     try {

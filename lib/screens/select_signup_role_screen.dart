@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'signup_page.dart';
+import '../widgets/glass_container.dart';
 
 class SelectSignupRoleScreen extends StatelessWidget {
   const SelectSignupRoleScreen({super.key});
@@ -8,104 +9,102 @@ class SelectSignupRoleScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF81C784),
-              Color(0xFF388E3C),
-            ], // Green gradient for signup
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                "Create Account",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+      body: Stack(
+        children: [
+          // Background Gradient
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFF10B981).withOpacity(0.08),
+                    Theme.of(context).scaffoldBackgroundColor,
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              const Text(
-                "Select your role to register",
-                style: TextStyle(fontSize: 16, color: Colors.white70),
-              ),
-              const SizedBox(height: 40),
-              Wrap(
-                spacing: 20,
-                runSpacing: 20,
-                alignment: WrapAlignment.center,
+            ),
+          ),
+          
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildGlassButton(
-                    context,
-                    "Student",
-                    Icons.person,
-                    Colors.orange,
+                  const SizedBox(height: 20),
+                  Hero(
+                    tag: 'logo',
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.build_circle_rounded, size: 64, color: Color(0xFF10B981)),
+                    ),
                   ),
-                  _buildGlassButton(
-                    context,
-                    "Warden",
-                    Icons.woman,
-                    Colors.pink,
+                  const SizedBox(height: 32),
+                  const Text(
+                    "Join HostelFix",
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                  _buildGlassButton(
-                    context,
-                    "Admin",
-                    Icons.admin_panel_settings,
-                    Colors.red,
+                  const SizedBox(height: 8),
+                  Text(
+                    "Create your account to start managing issues",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
                   ),
-                  _buildGlassButton(
-                    context,
-                    "Contractor",
-                    Icons.handyman,
-                    Colors.blue,
+                  const SizedBox(height: 48),
+                  
+                  Expanded(
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        _buildRoleCard(context, "Student", Icons.person_rounded, const Color(0xFF2563EB)),
+                        _buildRoleCard(context, "Warden", Icons.security_rounded, const Color(0xFF10B981)),
+                        _buildRoleCard(context, "Admin", Icons.admin_panel_settings_rounded, const Color(0xFFEF4444)),
+                        _buildRoleCard(context, "Contractor", Icons.handyman_rounded, const Color(0xFF8B5CF6)),
+                      ],
+                    ),
                   ),
+
+                  const SizedBox(height: 24),
+                  TextButton(
+                    onPressed: () => Navigator.pushReplacementNamed(context, '/select-role'),
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
+                        children: [
+                          TextSpan(text: "Already have an account? ", style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
+                          TextSpan(
+                            text: "Login",
+                            style: TextStyle(color: const Color(0xFF10B981), fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
-              const SizedBox(height: 40),
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/select-role');
-                },
-                child: RichText(
-                  text: const TextSpan(
-                    style: TextStyle(fontSize: 14),
-                    children: [
-                      TextSpan(
-                        text: "Already have an account? ",
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                      TextSpan(
-                        text: "Login",
-                        style: TextStyle(
-                          color: Color(0xFF64B5F6),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildGlassButton(
-    BuildContext context,
-    String role,
-    IconData icon,
-    Color iconColor,
-  ) {
+  Widget _buildRoleCard(BuildContext context, String role, IconData icon, Color color) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -113,34 +112,28 @@ class SelectSignupRoleScreen extends StatelessWidget {
           MaterialPageRoute(builder: (context) => SignupPage(role: role)),
         );
       },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            width: 150,
-            height: 150,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+      child: GlassContainer(
+        padding: EdgeInsets.zero,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 32, color: color),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 50, color: Colors.white),
-                const SizedBox(height: 10),
-                Text(
-                  role,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 16),
+            Text(
+              role,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

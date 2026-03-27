@@ -4,6 +4,7 @@ import '../providers/user_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/glass_container.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/auth_service.dart';
 import 'package:hostel_fix/services/notification_service.dart';
 
 class ReportIssuePage extends StatefulWidget {
@@ -212,11 +213,15 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      await NotificationService.showNotification(
-        title: "New Report: $category",
-        body: "A new ${category.toLowerCase()} issue has been reported in ${userData['hostel']}.",
-        color: Theme.of(context).primaryColor,
-      );
+      // Notify Warden of the hostel
+      final warden = await AuthService().getWardenForHostel(userData['hostel'] ?? '');
+      if (warden != null && warden['uid'] != null) {
+        await NotificationService.sendNotification(
+          recipientId: warden['uid'],
+          title: "New Report: $category",
+          body: "Student ${userData['name']} reported an issue in Room ${roomController.text.trim()}.",
+        );
+      }
 
       if (priority == 'high') {
         await NotificationService.showEmergencyNotification(

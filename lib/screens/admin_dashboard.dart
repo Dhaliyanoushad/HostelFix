@@ -170,7 +170,7 @@ class PendingRequestsView extends StatelessWidget {
                   const Divider(height: 32, thickness: 0.5),
                   _infoRow(context, Icons.phone_rounded, "Phone", data['phone'] ?? 'N/A'),
                   if (data['role'] == 'Contractor')
-                    _infoRow(context, Icons.work_history_rounded, "Experience", "${data['experience'] ?? '0'} Years"),
+                    _infoRow(context, Icons.work_history_rounded, "Job Experience", data['experience'] ?? 'N/A'),
                   if (data['role'] == 'Warden')
                     _infoRow(context, Icons.qr_code_rounded, "Hostel Code", data['hostelCode'] ?? 'N/A'),
                   const SizedBox(height: 16),
@@ -215,7 +215,7 @@ class PendingRequestsView extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => _approveRequest(doc.id, data['name'] ?? 'User', data['role']),
+                          onPressed: () => _approveRequest(doc.id, data['uid'], data['name'] ?? 'User', data['role']),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF10B981),
                             foregroundColor: Colors.white,
@@ -229,7 +229,7 @@ class PendingRequestsView extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => _rejectRequest(doc.id, data['name'] ?? 'User', data['role']),
+                          onPressed: () => _rejectRequest(doc.id, data['uid'], data['name'] ?? 'User', data['role']),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFFEF4444),
                             side: const BorderSide(color: Color(0xFFEF4444)),
@@ -290,22 +290,22 @@ class PendingRequestsView extends StatelessWidget {
     );
   }
 
-  void _approveRequest(String id, String name, String role) async {
+  void _approveRequest(String id, String uid, String name, String role) async {
     await FirebaseFirestore.instance.collection('users').doc(id).update({'approved': true});
-    await NotificationService.showNotification(
+    await NotificationService.sendNotification(
+      recipientId: uid,
       title: "$role Approved",
       body: "The profile for $name has been verified and approved.",
-      color: Colors.green,
     );
   }
 
-  void _rejectRequest(String id, String name, String role) async {
-    await FirebaseFirestore.instance.collection('users').doc(id).delete();
-    await NotificationService.showNotification(
+  void _rejectRequest(String id, String uid, String name, String role) async {
+    await NotificationService.sendNotification(
+      recipientId: uid,
       title: "$role Rejected",
       body: "The registration request for $name was declined.",
-      color: Colors.redAccent,
     );
+    await FirebaseFirestore.instance.collection('users').doc(id).delete();
   }
 }
 
@@ -579,7 +579,7 @@ Widget _infoRow(BuildContext context, IconData icon, String label, String value)
         Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
         const SizedBox(width: 8),
         Text("$label: ", style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5))),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+        Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
       ],
     ),
   );
