@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
+import '../widgets/custom_widgets.dart';
+import '../theme/app_theme.dart';
 
 class LoginPage extends StatefulWidget {
   final String? role;
@@ -14,12 +16,15 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final AuthService _auth = AuthService();
+  final TextEditingController _idController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-  String identity = ''; // Can be email, studentId, or phone
-  String password = '';
   bool loading = false;
 
   void login() async {
+    String identity = _idController.text.trim();
+    String password = _passwordController.text.trim();
+
     if (identity.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -56,13 +61,29 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (userData != null) {
-        // Check if role matches if provided
         if (widget.role != null && userData['role'] != widget.role) {
           await _auth.logout();
           throw 'Unauthorized: You are not a ${widget.role}';
         }
 
-        // Store in Provider
+        if (userData['role'] == 'Contractor') {
+          if (userData['status'] == 'pending') {
+            await _auth.logout();
+            throw 'Your account is waiting for admin approval.';
+          } else if (userData['status'] != 'approved') {
+            await _auth.logout();
+            throw 'Account not found.';
+          }
+        }
+
+        if (userData['role'] == 'Student') {
+          if (userData['status'] == 'pending') {
+            await _auth.logout();
+            throw 'Your account is waiting for warden approval.';
+          }
+        }
+
+        if (!mounted) return;
         Provider.of<UserProvider>(context, listen: false).setUser(userData);
 
         String role = userData['role'];
@@ -91,11 +112,15 @@ class _LoginPageState extends State<LoginPage> {
             (r) => false,
           );
         }
+      } else {
+        throw 'Account not found.';
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       setState(() => loading = false);
     }
@@ -115,66 +140,73 @@ class _LoginPageState extends State<LoginPage> {
       idIcon = Icons.contact_mail;
     }
 
-    String passLabel = "Password";
-
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(title: Text('$roleTitle Login')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            if (widget.role == "Warden")
-              const Text(
-                "Warden Login – Hostel Management",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            const SizedBox(height: 30),
-            TextField(
-              decoration: InputDecoration(
-                labelText: idLabel,
-                border: const OutlineInputBorder(),
-                prefixIcon: Icon(idIcon),
-              ),
-              onChanged: (v) => identity = v,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: passLabel,
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.lock),
-              ),
-              obscureText: true,
-              onChanged: (v) => password = v,
-            ),
-            const SizedBox(height: 30),
-            loading
-                ? const CircularProgressIndicator()
-                : SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: login,
-                      child: const Text(
-                        'Login',
-                        style: TextStyle(fontSize: 16),
+      body: FuturisticBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: GlassCard(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.lock_person_rounded,
+                      size: 64,
+                      color: AppColors.primaryAccent,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      "$roleTitle Login",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                        shadows: [
+                          Shadow(
+                            color: AppColors.primaryAccent.withValues(
+                              alpha: 0.3,
+                            ),
+                            blurRadius: 8,
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/select-signup-role');
-              },
-              child: const Text("Don't have an account? Sign Up"),
+                    const SizedBox(height: 32),
+                    CustomTextField(
+                      label: idLabel,
+                      controller: _idController,
+                      prefixIcon: idIcon,
+                    ),
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      label: "Password",
+                      controller: _passwordController,
+                      isPassword: true,
+                      prefixIcon: Icons.vpn_key_rounded,
+                    ),
+                    const SizedBox(height: 40),
+                    NeonButton(
+                      label: "LOGIN",
+                      onPressed: login,
+                      isLoading: loading,
+                    ),
+                    const SizedBox(height: 24),
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/select-signup-role'),
+                      child: const Text(
+                        "Need an account? Sign Up",
+                        style: TextStyle(color: AppColors.secondaryAccent),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );

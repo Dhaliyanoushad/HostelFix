@@ -34,6 +34,9 @@ class AuthService {
         'gender': gender,
         'phone': phone,
         'specialization': specialization,
+        'status': (role == 'Contractor' || role == 'Student')
+            ? 'pending'
+            : 'approved',
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -54,8 +57,8 @@ class AuthService {
       }
 
       return userData; // success
-    } on FirebaseAuthException catch (e) {
-      throw e.message ?? 'Signup failed';
+    } on FirebaseAuthException {
+      rethrow;
     } catch (e) {
       throw e.toString();
     }

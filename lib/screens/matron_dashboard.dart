@@ -132,7 +132,9 @@ class _WardenDashboardState extends State<WardenDashboard> {
                 label: Text(status),
                 selected: isSelected,
                 onSelected: (val) {
-                  if (val) setState(() => selectedStatus = status);
+                  if (val) {
+                    setState(() => selectedStatus = status);
+                  }
                 },
                 selectedColor: Colors.pinkAccent,
                 labelStyle: TextStyle(
@@ -170,7 +172,9 @@ class _WardenDashboardState extends State<WardenDashboard> {
                 ? const BorderSide(color: Colors.redAccent, width: 2)
                 : BorderSide.none,
           ),
-          color: isEmergency ? Colors.white.withOpacity(0.9) : Colors.white,
+          color: isEmergency
+              ? Colors.white.withValues(alpha: 0.9)
+              : Colors.white,
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             title: Text(
