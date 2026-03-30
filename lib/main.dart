@@ -99,6 +99,7 @@ class _AuthWrapperState extends State<_AuthWrapper> {
         final userData = await AuthService().fetchUserData(user.uid);
         if (userData != null && mounted) {
           Provider.of<UserProvider>(context, listen: false).setUser(userData);
+          NotificationService.listenToNotifications(user.uid);
         }
       }
     } catch (e) {

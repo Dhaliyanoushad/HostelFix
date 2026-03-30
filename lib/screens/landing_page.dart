@@ -5,13 +5,46 @@ import '../providers/theme_provider.dart';
 import '../widgets/glass_container.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class LandingPage extends StatelessWidget {
+class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
+
+  @override
+  State<LandingPage> createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+
+  final List<Map<String, dynamic>> _slides = [
+    {
+      "title": "Your Hostel Issue,\nSolved Faster",
+      "subtitle": "Report issues instantly, track progress in real-time, and enjoy a comfortable hostel life.",
+      "icon": Icons.bolt_rounded,
+      "color": Color(0xFF2563EB),
+      "chip": "PRO MAINTENANCE",
+    },
+    {
+      "title": "Verified Staff &\nQuick Response",
+      "subtitle": "Professional contractors assigned by wardens to ensure high-quality fixes within 24 hours.",
+      "icon": Icons.verified_user_rounded,
+      "color": Color(0xFF10B981),
+      "chip": "TRUSTED SERVICE",
+    },
+    {
+      "title": "Real-time Tracking\n& Transparency",
+      "subtitle": "Stay updated with live status changes and direct communication with maintenance teams.",
+      "icon": Icons.track_changes_rounded,
+      "color": Color(0xFF8B5CF6),
+      "chip": "LIVE UPDATES",
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode;
+    final primaryColor = Theme.of(context).primaryColor;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -21,10 +54,10 @@ class LandingPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                color: primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(Icons.build_circle_rounded, color: Theme.of(context).primaryColor),
+              child: Icon(Icons.build_circle_rounded, color: primaryColor),
             ),
             const SizedBox(width: 12),
             Text(
@@ -40,7 +73,6 @@ class LandingPage extends StatelessWidget {
           IconButton(
             onPressed: () => themeProvider.toggleTheme(),
             icon: Icon(isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded),
-            tooltip: "Toggle Theme",
           ),
           const SizedBox(width: 8),
           Consumer<UserProvider>(
@@ -48,29 +80,17 @@ class LandingPage extends StatelessWidget {
               if (userProvider.userData != null) {
                 return Padding(
                   padding: const EdgeInsets.only(right: 16),
-                  child: ElevatedButton(
+                  child: TextButton(
                     onPressed: () => _navigateToDashboard(context, userProvider.userData!),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text("Dashboard"),
+                    child: const Text("Dashboard", style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 );
               }
               return Padding(
                 padding: const EdgeInsets.only(right: 16),
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pushNamed(context, '/select-role'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text("Login"),
+                child: TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/login'),
+                  child: const Text("Login", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               );
             },
@@ -79,171 +99,149 @@ class LandingPage extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // Background Decorative Elements
-          Positioned(
-            top: -100,
-            right: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 100,
-            left: -50,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.blueAccent.withOpacity(0.05),
-              ),
-            ),
-          ),
-
-          SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 120, 24, 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Chip(
-                  label: Text("PRO HOSTEL MAINTENANCE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
-                  side: BorderSide.none,
-                  backgroundColor: Color(0xFFDBEAFE),
-                  labelStyle: TextStyle(color: Color(0xFF1E40AF)),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  "Your Hostel Issue,\nSolved Faster",
-                  style: TextStyle(
-                    fontSize: 42,
-                    fontWeight: FontWeight.w900,
-                    height: 1.1,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  "Report issues instantly, track progress in real-time, and enjoy a comfortable hostel life with our smart maintenance system.",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pushNamed(context, '/select-signup-role'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 0,
-                        ),
-                        child: const Text("Get Started", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          side: BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.5)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        child: const Text("Learn More", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 60),
-                Text(
-                  "Key Features",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _buildGlassFeature(
-                  context: context,
-                  icon: Icons.bolt_rounded,
-                  color: Colors.amber,
-                  title: "Instant Reporting",
-                  description: "Report any maintenance issue in seconds using our streamlined interface.",
-                ),
-                const SizedBox(height: 16),
-                _buildGlassFeature(
-                  context: context,
-                  icon: Icons.track_changes_rounded,
-                  color: Colors.blue,
-                  title: "Real-time Tracking",
-                  description: "Monitor the status of your complaints from 'Pending' to 'Resolved' live.",
-                ),
-                const SizedBox(height: 16),
-                _buildGlassFeature(
-                  context: context,
-                  icon: Icons.verified_rounded,
-                  color: Colors.green,
-                  title: "Verified Staff",
-                  description: "Professional contractors assigned by wardens to ensure high-quality fixes.",
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGlassFeature({
-    required BuildContext context,
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String description,
-  }) {
-    return GlassContainer(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
+          // Animated Background Gradient
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 500),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  _slides[_currentPage]['color'].withOpacity(0.08),
+                  Theme.of(context).scaffoldBackgroundColor,
+                  _slides[_currentPage]['color'].withOpacity(0.05),
+                ],
+              ),
             ),
-            child: Icon(icon, color: color, size: 28),
           ),
-          const SizedBox(width: 20),
-          Expanded(
+          
+          SafeArea(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (int page) => setState(() => _currentPage = page),
+                    itemCount: _slides.length,
+                    itemBuilder: (context, index) {
+                      final slide = _slides[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            TweenAnimationBuilder<double>(
+                              duration: const Duration(milliseconds: 600),
+                              tween: Tween(begin: 0.0, end: 1.0),
+                              builder: (context, value, child) {
+                                return Transform.scale(
+                                  scale: value,
+                                  child: Opacity(opacity: value, child: child),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(32),
+                                decoration: BoxDecoration(
+                                  color: slide['color'].withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(slide['icon'], size: 100, color: slide['color']),
+                              ),
+                            ),
+                            const SizedBox(height: 48),
+                            Chip(
+                              label: Text(slide['chip'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
+                              backgroundColor: slide['color'].withOpacity(0.1),
+                              labelStyle: TextStyle(color: slide['color']),
+                              side: BorderSide.none,
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              slide['title'],
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              slide['subtitle'],
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                    fontSize: 14,
+                
+                // Indicators and Buttons
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(_slides.length, (index) {
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            height: 8,
+                            width: _currentPage == index ? 24 : 8,
+                            decoration: BoxDecoration(
+                              color: _currentPage == index ? slideActiveColor : Colors.grey.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 40),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.pushNamed(context, '/select-signup-role'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: slideActiveColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 20),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                elevation: 0,
+                              ),
+                              child: const Text("Create Account", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: slideActiveColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: IconButton(
+                              onPressed: () {
+                                if (_currentPage < _slides.length - 1) {
+                                  _pageController.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+                                } else {
+                                  _pageController.animateToPage(0, duration: const Duration(milliseconds: 600), curve: Curves.easeInOut);
+                                }
+                              },
+                              icon: const Icon(Icons.arrow_forward_rounded),
+                              color: slideActiveColor,
+                              padding: const EdgeInsets.all(18),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
                 ),
               ],
@@ -253,6 +251,8 @@ class LandingPage extends StatelessWidget {
       ),
     );
   }
+
+  Color get slideActiveColor => _slides[_currentPage]['color'];
 
   void _navigateToDashboard(BuildContext context, Map<String, dynamic> userData) {
     if (userData['approved'] == false) {

@@ -5,6 +5,7 @@ import '../providers/theme_provider.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../services/cloudinary_service.dart';
 import '../widgets/glass_container.dart';
 
@@ -109,6 +110,30 @@ class _SignupPageState extends State<SignupPage> {
         Provider.of<UserProvider>(context, listen: false).setUser(userData);
         
         if (userData['approved'] == false) {
+          // If student, notify Warden
+          if (selectedRole == 'Student' && hostel.isNotEmpty) {
+            final warden = await _auth.getWardenForHostel(hostel);
+            if (warden != null && warden['uid'] != null) {
+              await NotificationService.sendNotification(
+                recipientId: warden['uid'],
+                title: "New Student Signup",
+                body: "A new student ($cleanName) has signed up for $hostel and is waiting for your verification.",
+              );
+            }
+          }
+          // If Warden or Contractor, notify Admins
+          if (selectedRole == 'Warden' || selectedRole == 'Contractor') {
+            final admins = await _auth.getAllAdmins();
+            for (var admin in admins) {
+              if (admin['uid'] != null) {
+                await NotificationService.sendNotification(
+                  recipientId: admin['uid'],
+                  title: "New $selectedRole Request",
+                  body: "$cleanName has signed up as a $selectedRole and is waiting for approval.",
+                );
+              }
+            }
+          }
           Navigator.pushNamedAndRemoveUntil(context, '/waiting-approval', (r) => false);
           return;
         }
@@ -143,6 +168,13 @@ class _SignupPageState extends State<SignupPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text('Join as $selectedRole', style: const TextStyle(fontWeight: FontWeight.w900)),
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
+            icon: const Icon(Icons.home_rounded),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Stack(
         children: [
@@ -208,7 +240,12 @@ class _SignupPageState extends State<SignupPage> {
                               specializations,
                               (v) => setState(() => specialization = v!)
                             ),
-                            _buildField(icon: Icons.history_rounded, label: 'Experience (Years)', onChanged: (v) => experience = v, keyboardType: TextInputType.number),
+                            _buildField(
+                              icon: Icons.history_rounded, 
+                              label: 'Job Experience (Details)', 
+                              onChanged: (v) => experience = v,
+                              maxLines: 3,
+                            ),
                           ],
 
                           if (selectedRole == 'Student' || selectedRole == 'Warden') ...[
@@ -330,6 +367,7 @@ class _SignupPageState extends State<SignupPage> {
     required String label,
     required Function(String) onChanged,
     TextInputType? keyboardType,
+    int? maxLines,
     String? Function(String?)? validator,
   }) {
     return Padding(
@@ -337,6 +375,7 @@ class _SignupPageState extends State<SignupPage> {
       child: TextFormField(
         keyboardType: keyboardType,
         onChanged: onChanged,
+        maxLines: maxLines ?? 1,
         style: const TextStyle(fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           labelText: label,

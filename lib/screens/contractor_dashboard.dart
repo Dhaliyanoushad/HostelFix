@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/user_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/glass_container.dart';
+import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import 'package:intl/intl.dart';
 
@@ -695,11 +696,27 @@ class TaskDetailsSheet extends StatelessWidget {
     if (newStatus == 'Accepted') {
       final String visitTime = DateFormat('MMM dd, hh:mm a').format((updateData['scheduledVisit'] as Timestamp).toDate());
       final data = doc.data() as Map<String, dynamic>;
-      await NotificationService.showNotification(
-        title: "Complaint Accepted!",
-        body: "Your '${data['title']}' is scheduled for $visitTime",
-        color: Colors.green,
-      );
+      final studentUid = data['uid'] ?? data['studentId'];
+      
+      if (studentUid != null) {
+        await NotificationService.sendNotification(
+          recipientId: studentUid,
+          title: "Visit Scheduled!",
+          body: "The contractor has scheduled a visit for '${data['title']}' on $visitTime",
+        );
+      }
+
+      // Notify Warden as well
+      if (data['hostel'] != null) {
+        final warden = await AuthService().getWardenForHostel(data['hostel']);
+        if (warden != null && warden['uid'] != null) {
+          await NotificationService.sendNotification(
+            recipientId: warden['uid'],
+            title: "Task Accepted: ${data['title']}",
+            body: "Contractor has scheduled a visit for ${data['hostel']} on $visitTime",
+          );
+        }
+      }
     }
 
     if (context.mounted) {
