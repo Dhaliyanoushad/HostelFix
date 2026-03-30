@@ -1,0 +1,7 @@
+﻿
+InputObject          SideIndicator
+-----------          -------------
+auth_service_v2.dart =>           
+auth_service_v1.dart <=           
+
+

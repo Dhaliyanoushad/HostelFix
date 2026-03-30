@@ -1,0 +1,44 @@
+﻿commit 6e330b965005f16383236d658586e74324835106
+Author: expertcoder69 <mariambyju@gmail.com>
+Date:   Tue Mar 17 12:35:24 2026 +0530
+
+    feat(notifications): implement role-based FCM system & add secret to .gitignore
+
+diff --git a/lib/screens/contractor_dashboard.dart b/lib/screens/contractor_dashboard.dart
+index 26538d9..9f9278a 100644
+--- a/lib/screens/contractor_dashboard.dart
++++ b/lib/screens/contractor_dashboard.dart
+@@ -293,11 +293,28 @@ class _ContractorDashboardState extends State<ContractorDashboard> {
+     await FirebaseFirestore.instance.collection('complaints').doc(id).update({
+       'status': newStatus,
+     });
+-    if (newStatus == 'Completed') {
+-      await NotificationService.showNotification(
+-        title: "Work Completed",
+-        body: "The contractor has finished working on your complaint.",
+-      );
++    
++    // Notify relevant parties
++    final doc = await FirebaseFirestore.instance.collection('complaints').doc(id).get();
++    if (doc.exists) {
++      final data = doc.data()!;
++      final studentId = data['uid'] ?? data['studentId'];
++      final title = data['title'] ?? 'Task';
++      
++      if (studentId != null) {
++        if (newStatus == 'In Progress') {
++           await NotificationService.sendNotificationToUser(studentId, 'Work Started ≡ƒÜÇ', 'Contractor has started working on: $title', type: 'WORK_STARTED');
++           await NotificationService.sendNotificationToRole('Warden', 'Work Started', 'Contractor started work on $title', type: 'WORK_STARTED');
++        } else if (newStatus == 'Completed') {
++           // Local + Push
++           await NotificationService.showNotification(
++             title: "Work Completed",
++             body: "The contractor has finished working on your complaint.",
++           );
++           await NotificationService.sendNotificationToUser(studentId, 'Work Completed Γ£à', 'Your complaint "$title" has been marked as resolved by the contractor.', type: 'WORK_COMPLETED');
++           await NotificationService.sendNotificationToRole('Warden', 'Work Completed', 'Contractor completed work on $title', type: 'WORK_COMPLETED');
++        }
++      }
+     }
+     if (mounted) {
+       ScaffoldMessenger.of(context).showSnackBar(

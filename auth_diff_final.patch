@@ -1,0 +1,22 @@
+﻿diff --git a/auth_service_v1.dart b/auth_service_v2.dart
+index 0baaea5..1eb11c5 100644
+--- a/auth_service_v1.dart
++++ b/auth_service_v2.dart
+@@ -176,6 +176,17 @@ class AuthService {
+     }
+   }
+ 
++  /// UPDATE FCM TOKEN
++  Future<void> updateFCMToken(String uid, String token) async {
++    try {
++      await _db.collection('users').doc(uid).update({
++        'fcmToken': token,
++      });
++    } catch (e) {
++      // Ignore if user document doesn't exist yet or other silent errors
++    }
++  }
++
+   /// LOGOUT
+   Future<void> logout() async {
+     await _auth.signOut();

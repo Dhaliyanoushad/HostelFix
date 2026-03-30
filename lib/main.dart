@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
+
+import 'firebase_options.dart'; // ✅ ADDED
 
 import 'providers/user_provider.dart';
 import 'providers/theme_provider.dart';
@@ -23,10 +26,23 @@ import 'screens/profile_settings_page.dart';
 import 'screens/help_support_page.dart';
 import 'screens/waiting_approval_page.dart';
 
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  debugPrint('Handling a background message: ${message.messageId}');
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  // ✅ FIXED Firebase initialization for Web
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await NotificationService.init();
+
   runApp(
     MultiProvider(
       providers: [
@@ -99,11 +115,12 @@ class _AuthWrapperState extends State<_AuthWrapper> {
         final userData = await AuthService().fetchUserData(user.uid);
         if (userData != null && mounted) {
           Provider.of<UserProvider>(context, listen: false).setUser(userData);
+          // Save the FCM token for background notifications
+          await NotificationService.saveTokenToDatabase(user.uid);
           NotificationService.listenToNotifications(user.uid);
         }
       }
     } catch (e) {
-      // If profile is missing (deleted), log out
       await FirebaseAuth.instance.signOut();
       if (mounted) {
         Provider.of<UserProvider>(context, listen: false).clearUser();
@@ -118,7 +135,9 @@ class _AuthWrapperState extends State<_AuthWrapper> {
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
     return widget.child;
   }
