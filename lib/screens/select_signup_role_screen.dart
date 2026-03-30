@@ -29,6 +29,16 @@ class SelectSignupRoleScreen extends StatelessWidget {
           
           SafeArea(
             child: Padding(
+              padding: const EdgeInsets.only(left: 16, top: 8),
+              child: IconButton(
+                onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                tooltip: "Back to Home",
+              ),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -62,20 +72,18 @@ class SelectSignupRoleScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 48),
                   
-                  Expanded(
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildRoleCard(context, "Student", Icons.person_rounded, const Color(0xFF2563EB)),
-                        _buildRoleCard(context, "Warden", Icons.security_rounded, const Color(0xFF10B981)),
-                        _buildRoleCard(context, "Admin", Icons.admin_panel_settings_rounded, const Color(0xFFEF4444)),
-                        _buildRoleCard(context, "Contractor", Icons.handyman_rounded, const Color(0xFF8B5CF6)),
-                      ],
-                    ),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildRoleCard(context, "Student", Icons.person_rounded, const Color(0xFF2563EB)),
+                      _buildRoleCard(context, "Warden", Icons.security_rounded, const Color(0xFF10B981)),
+                      _buildRoleCard(context, "Admin", Icons.admin_panel_settings_rounded, const Color(0xFFEF4444)),
+                      _buildRoleCard(context, "Contractor", Icons.handyman_rounded, const Color(0xFF8B5CF6)),
+                    ],
                   ),
 
                   const SizedBox(height: 24),

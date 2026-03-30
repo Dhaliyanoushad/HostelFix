@@ -34,6 +34,7 @@ class _SignupPageState extends State<SignupPage> {
   String password = '';
   late String verificationType;
   File? verificationImage;
+  File? profileImage;
   final ImagePicker _picker = ImagePicker();
   final CloudinaryService _cloudinaryService = CloudinaryService();
 
@@ -78,9 +79,18 @@ class _SignupPageState extends State<SignupPage> {
       if (verificationImage != null) {
         verificationImageUrl = await _cloudinaryService.uploadImage(verificationImage!);
         if (verificationImageUrl == null) {
-          throw 'Failed to upload image. Please check your internet connection.';
+          throw 'Failed to upload verification image.';
         }
       }
+
+      String? uploadedProfileUrl;
+      if (profileImage != null) {
+        uploadedProfileUrl = await _cloudinaryService.uploadImage(profileImage!);
+        if (uploadedProfileUrl == null) {
+          throw 'Failed to upload profile photo.';
+        }
+      }
+
       String selectedRole = widget.role ?? 'Student';
 
       // Sanitise inputs
@@ -99,7 +109,7 @@ class _SignupPageState extends State<SignupPage> {
         phone: (selectedRole == 'Contractor' || selectedRole == 'Warden' || selectedRole == 'Student') ? phone.trim() : null,
         specialization: selectedRole == 'Contractor' ? specialization : null,
         experience: selectedRole == 'Contractor' ? experience.trim() : null,
-        profilePhoto: profilePhotoUrl?.trim(),
+        profilePhoto: uploadedProfileUrl,
         verificationImageUrl: verificationImageUrl,
         verificationType: verificationType,
         password: cleanPassword,
@@ -165,16 +175,14 @@ class _SignupPageState extends State<SignupPage> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          tooltip: "Back to Home",
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text('Join as $selectedRole', style: const TextStyle(fontWeight: FontWeight.w900)),
-        actions: [
-          IconButton(
-            onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
-            icon: const Icon(Icons.home_rounded),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: Stack(
         children: [
@@ -203,12 +211,28 @@ class _SignupPageState extends State<SignupPage> {
                               ['Student ID', 'Aadhaar Card'],
                               (v) => setState(() => verificationType = v!)
                             ),
-                            _buildImagePickerButton(),
+                            _buildImagePickerButton(
+                              label: 'Upload $verificationType Photo',
+                              icon: Icons.badge_rounded,
+                              imageFile: verificationImage,
+                              onTap: () async {
+                                final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+                                if (image != null) setState(() => verificationImage = File(image.path));
+                              },
+                            ),
                             _buildField(icon: Icons.meeting_room_rounded, label: 'Room Number', onChanged: (v) => room = v),
                             _buildField(icon: Icons.phone_rounded, label: 'Phone Number', onChanged: (v) => phone = v, keyboardType: TextInputType.phone),
                           ],
                           
-                          _buildField(icon: Icons.link_rounded, label: 'Profile Photo URL (Optional)', onChanged: (v) => profilePhotoUrl = v, validator: (v) => null),
+                          _buildImagePickerButton(
+                            label: 'Upload Profile Photo',
+                            icon: Icons.add_a_photo_rounded,
+                            imageFile: profileImage,
+                            onTap: () async {
+                              final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 40);
+                              if (image != null) setState(() => profileImage = File(image.path));
+                            },
+                          ),
 
                           if (selectedRole == 'Warden') ...[
                             _buildDropdownField(
@@ -218,7 +242,15 @@ class _SignupPageState extends State<SignupPage> {
                               ['Aadhaar Card'], // Wardens only Aadhaar
                               (v) => setState(() => verificationType = v!)
                             ),
-                            _buildImagePickerButton(),
+                            _buildImagePickerButton(
+                              label: 'Upload $verificationType Photo',
+                              icon: Icons.badge_rounded,
+                              imageFile: verificationImage,
+                              onTap: () async {
+                                final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+                                if (image != null) setState(() => verificationImage = File(image.path));
+                              },
+                            ),
                             _buildField(icon: Icons.phone_rounded, label: 'Phone Number', onChanged: (v) => phone = v, keyboardType: TextInputType.phone),
                             _buildField(icon: Icons.qr_code_rounded, label: 'Hostel Code', onChanged: (v) => hostelCode = v),
                           ],
@@ -231,7 +263,15 @@ class _SignupPageState extends State<SignupPage> {
                               ['Aadhaar Card'], // Contractors only Aadhaar
                               (v) => setState(() => verificationType = v!)
                             ),
-                            _buildImagePickerButton(),
+                            _buildImagePickerButton(
+                              label: 'Upload $verificationType Photo',
+                              icon: Icons.badge_rounded,
+                              imageFile: verificationImage,
+                              onTap: () async {
+                                final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+                                if (image != null) setState(() => verificationImage = File(image.path));
+                              },
+                            ),
                             _buildField(icon: Icons.phone_rounded, label: 'Phone Number', onChanged: (v) => phone = v, keyboardType: TextInputType.phone),
                             _buildDropdownField(
                               Icons.engineering_rounded, 
@@ -322,38 +362,37 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  Widget _buildImagePickerButton() {
+  Widget _buildImagePickerButton({
+    required String label,
+    required IconData icon,
+    required File? imageFile,
+    required VoidCallback onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: InkWell(
-        onTap: () async {
-          final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
-          if (image != null) {
-            setState(() {
-              verificationImage = File(image.path);
-            });
-          }
-        },
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.1)),
           ),
           child: Row(
             children: [
-              Icon(Icons.add_a_photo_rounded, size: 20, color: Theme.of(context).primaryColor),
+              Icon(icon, size: 20, color: Theme.of(context).primaryColor),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  verificationImage != null 
-                    ? 'Image Selected: ${verificationImage!.path.split('/').last}'
-                    : 'Upload $verificationType Photo',
+                  imageFile != null 
+                    ? 'Selected: ${imageFile.path.split('/').last}'
+                    : label,
                   style: const TextStyle(fontWeight: FontWeight.w500),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (verificationImage != null)
+              if (imageFile != null)
                 const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
             ],
           ),

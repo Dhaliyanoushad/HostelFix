@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/glass_container.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../services/cloudinary_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import 'package:hostel_fix/services/notification_service.dart';
@@ -24,7 +27,9 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
   String category = 'Electrician';
   String priority = 'normal';
   bool isLoading = false;
-  String? imageUrl;
+  File? issueImage;
+  final ImagePicker _picker = ImagePicker();
+  final CloudinaryService _cloudinaryService = CloudinaryService();
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +131,9 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
 
                     _buildField(icon: Icons.title_rounded, label: "Short Title", controller: titleController),
                     _buildField(icon: Icons.description_rounded, label: "Details of Issue", controller: descriptionController, maxLines: 4),
-                    _buildField(icon: Icons.link_rounded, label: "Image URL (Optional)", controller: TextEditingController(text: imageUrl), onChangedCallback: (v) => imageUrl = v, validator: (v) => null),
+                    
+                    const SizedBox(height: 8),
+                    _buildImagePicker(),
 
 
                     const SizedBox(height: 32),
@@ -152,6 +159,43 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImagePicker() {
+    return InkWell(
+      onTap: () async {
+        final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+        if (image != null) {
+          setState(() => issueImage = File(image.path));
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.add_a_photo_rounded, color: Theme.of(context).primaryColor),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                issueImage == null ? "Upload Photo of Issue (Optional)" : "Image selected: ${issueImage!.path.split('/').last}",
+                style: const TextStyle(fontWeight: FontWeight.w500),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (issueImage != null)
+              IconButton(
+                icon: const Icon(Icons.cancel_rounded, color: Colors.redAccent),
+                onPressed: () => setState(() => issueImage = null),
+              ),
+          ],
         ),
       ),
     );
@@ -193,6 +237,11 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
     setState(() => isLoading = true);
 
     try {
+      String? imageUrl;
+      if (issueImage != null) {
+        imageUrl = await _cloudinaryService.uploadImage(issueImage!);
+      }
+
       await FirebaseFirestore.instance.collection('complaints').add({
         'uid': userData['uid'],
         'name': userData['name'],
@@ -208,7 +257,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
         'issueDescription': descriptionController.text.trim(),
-        'imageUrl': imageUrl?.trim(),
+        'imageUrl': imageUrl,
         'status': 'Pending',
         'createdAt': FieldValue.serverTimestamp(),
       });

@@ -21,22 +21,25 @@ class _LandingPageState extends State<LandingPage> {
       "title": "Your Hostel Issue,\nSolved Faster",
       "subtitle": "Report issues instantly, track progress in real-time, and enjoy a comfortable hostel life.",
       "icon": Icons.bolt_rounded,
-      "color": Color(0xFF2563EB),
+      "color": const Color(0xFF2563EB),
       "chip": "PRO MAINTENANCE",
+      "image": "assets/images/maintenance_hero.png",
     },
     {
       "title": "Verified Staff &\nQuick Response",
       "subtitle": "Professional contractors assigned by wardens to ensure high-quality fixes within 24 hours.",
       "icon": Icons.verified_user_rounded,
-      "color": Color(0xFF10B981),
+      "color": const Color(0xFF10B981),
       "chip": "TRUSTED SERVICE",
+      "image": "assets/images/security_hero.png",
     },
     {
       "title": "Real-time Tracking\n& Transparency",
       "subtitle": "Stay updated with live status changes and direct communication with maintenance teams.",
       "icon": Icons.track_changes_rounded,
-      "color": Color(0xFF8B5CF6),
+      "color": const Color(0xFF8B5CF6),
       "chip": "LIVE UPDATES",
+      "image": "assets/images/tracking_hero.png",
     },
   ];
 
@@ -89,7 +92,7 @@ class _LandingPageState extends State<LandingPage> {
               return Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/login'),
+                  onPressed: () => Navigator.pushNamed(context, '/select-role'),
                   child: const Text("Login", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               );
@@ -125,8 +128,8 @@ class _LandingPageState extends State<LandingPage> {
                     itemCount: _slides.length,
                     itemBuilder: (context, index) {
                       final slide = _slides[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.only(top: 40),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -141,12 +144,24 @@ class _LandingPageState extends State<LandingPage> {
                                 );
                               },
                               child: Container(
-                                padding: const EdgeInsets.all(32),
+                                height: 280,
                                 decoration: BoxDecoration(
-                                  color: slide['color'].withOpacity(0.1),
-                                  shape: BoxShape.circle,
+                                  borderRadius: BorderRadius.circular(32),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: slide['color'].withOpacity(0.2),
+                                      blurRadius: 30,
+                                      offset: const Offset(0, 15),
+                                    ),
+                                  ],
                                 ),
-                                child: Icon(slide['icon'], size: 100, color: slide['color']),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(32),
+                                  child: Image.asset(
+                                    slide['image'],
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 48),
@@ -176,6 +191,7 @@ class _LandingPageState extends State<LandingPage> {
                                 height: 1.5,
                               ),
                             ),
+                            const SizedBox(height: 20),
                           ],
                         ),
                       );

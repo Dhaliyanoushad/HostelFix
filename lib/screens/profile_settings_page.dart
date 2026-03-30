@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
 import '../widgets/glass_container.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../services/cloudinary_service.dart';
 
 class ProfileSettingsPage extends StatefulWidget {
   const ProfileSettingsPage({super.key});
@@ -18,6 +21,9 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   late TextEditingController phoneController;
   late TextEditingController deptController;
   bool isLoading = false;
+  File? newProfileImage;
+  final ImagePicker _picker = ImagePicker();
+  final CloudinaryService _cloudinaryService = CloudinaryService();
 
   @override
   void initState() {
@@ -55,6 +61,13 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
         'department': deptController.text.trim(),
       };
 
+      if (newProfileImage != null) {
+        final imageUrl = await _cloudinaryService.uploadImage(newProfileImage!);
+        if (imageUrl != null) {
+          updateData['profilePhoto'] = imageUrl;
+        }
+      }
+
       await AuthService().updateUserProfile(uid: uid, updateData: updateData);
 
       // Update provider locally
@@ -90,23 +103,39 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
           child: Column(
             children: [
               Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                      child: Icon(Icons.person_rounded, size: 50, color: Theme.of(context).primaryColor),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Theme.of(context).primaryColor,
-                        child: const Icon(Icons.camera_alt_rounded, size: 18, color: Colors.white),
+                child: InkWell(
+                  onTap: () async {
+                    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 40);
+                    if (image != null) {
+                      setState(() => newProfileImage = File(image.path));
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(50),
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                        backgroundImage: newProfileImage != null 
+                            ? FileImage(newProfileImage!) 
+                            : (Provider.of<UserProvider>(context).userData?['profilePhoto'] != null 
+                                ? NetworkImage(Provider.of<UserProvider>(context).userData!['profilePhoto']) as ImageProvider
+                                : null),
+                        child: (newProfileImage == null && Provider.of<UserProvider>(context).userData?['profilePhoto'] == null)
+                            ? Icon(Icons.person_rounded, size: 50, color: Theme.of(context).primaryColor)
+                            : null,
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Theme.of(context).primaryColor,
+                          child: const Icon(Icons.camera_alt_rounded, size: 18, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 32),

@@ -89,17 +89,14 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          tooltip: "Back to Home",
+        ),
         title: Text('$roleTitle Login'),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        actions: [
-          IconButton(
-            onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
-            icon: const Icon(Icons.home_rounded),
-            tooltip: "Back to Home",
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: Stack(
         children: [
